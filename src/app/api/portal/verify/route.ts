@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { dataStore } from '@/lib/store';
+import { portalPinLimiter, getClientIp } from '@/lib/rateLimit';
 
 // GET: Returns only public presentation info (name, logo) without sensitive data
 export async function GET(request: Request) {
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
   }
 }
 
-// POST: Securely verifies PIN on server and returns authorized analytics/feedbacks
+// POST: Securely verifies PIN on server with Rate Limiting protection
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -45,6 +46,27 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Slug dan PIN diperlukan' },
         { status: 400 }
+      );
+    }
+
+    // Rate limiting: Anti brute-force by client IP + venue slug
+    const ip = getClientIp(request);
+    const rateLimitKey = `${ip}:${slug}`;
+    const limitStatus = portalPinLimiter.check(rateLimitKey);
+
+    if (!limitStatus.allowed) {
+      return NextResponse.json(
+        {
+          error: `Terlalu banyak percobaan salah. Akses diblokir sementara. Silakan coba lagi dalam ${Math.ceil(
+            limitStatus.retryAfter / 60
+          )} menit.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(limitStatus.retryAfter),
+          },
+        }
       );
     }
 
@@ -58,11 +80,22 @@ export async function POST(request: Request) {
 
     // Verify PIN securely on the server
     if (venue.owner_access_pin.trim() !== pin.trim()) {
+      portalPinLimiter.recordFailure(rateLimitKey);
+      const remaining = portalPinLimiter.check(rateLimitKey).remaining;
+
       return NextResponse.json(
-        { error: 'PIN salah, silakan coba lagi' },
+        {
+          error:
+            remaining > 0
+              ? `PIN salah. Sisa ${remaining} percobaan lagi.`
+              : 'PIN salah. Akses diblokir sementara karena terlalu banyak percobaan.',
+        },
         { status: 401 }
       );
     }
+
+    // Success: Reset rate limiter counter for this venue
+    portalPinLimiter.reset(rateLimitKey);
 
     // Fetch authorized owner data only after successful authentication
     const [analytics, feedbacks] = await Promise.all([

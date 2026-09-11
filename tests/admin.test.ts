@@ -90,4 +90,36 @@ describe('Admin Management & Auth Operations', () => {
     const authBody = await authRes.json();
     expect(authBody.authenticated).toBe(true);
   });
+
+  it('should block excessive invalid admin login attempts with HTTP 429', async () => {
+    const ip = '198.51.100.77';
+    for (let i = 0; i < 5; i++) {
+      await authPost(
+        new Request('http://localhost:3000/api/admin/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-forwarded-for': ip,
+          },
+          body: JSON.stringify({ password: 'wrong' }),
+        })
+      );
+    }
+
+    const blockedRes = await authPost(
+      new Request('http://localhost:3000/api/admin/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-forwarded-for': ip,
+        },
+        body: JSON.stringify({ password: 'supersecretpass' }),
+      })
+    );
+
+    expect(blockedRes.status).toBe(429);
+    const body = await blockedRes.json();
+    expect(body.error).toMatch(/Terlalu banyak percobaan gagal/i);
+    expect(blockedRes.headers.get('Retry-After')).toBeDefined();
+  });
 });

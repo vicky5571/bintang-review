@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { adminAuthLimiter, getClientIp } from '@/lib/rateLimit';
 
 const DEFAULT_ADMIN_PASS = 'bintang2026';
 const SESSION_COOKIE_NAME = 'admin_session';
@@ -32,15 +33,46 @@ export async function POST(request: Request) {
       return response;
     }
 
+    // Rate limiting: Anti-brute force against master admin password
+    const ip = getClientIp(request);
+    const limitStatus = adminAuthLimiter.check(ip);
+
+    if (!limitStatus.allowed) {
+      return NextResponse.json(
+        {
+          error: `Terlalu banyak percobaan gagal. Akses login admin diblokir sementara. Silakan coba lagi dalam ${Math.ceil(
+            limitStatus.retryAfter / 60
+          )} menit.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(limitStatus.retryAfter),
+          },
+        }
+      );
+    }
+
     const { password } = body;
     const requiredPassword = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASS;
 
     if (!password || password.trim() !== requiredPassword.trim()) {
+      adminAuthLimiter.recordFailure(ip);
+      const remaining = adminAuthLimiter.check(ip).remaining;
+
       return NextResponse.json(
-        { error: 'Password salah, silakan coba lagi' },
+        {
+          error:
+            remaining > 0
+              ? `Password salah. Sisa ${remaining} percobaan lagi.`
+              : 'Password salah. Akses diblokir sementara karena terlalu banyak percobaan salah.',
+        },
         { status: 401 }
       );
     }
+
+    // Success: Reset rate limiter counter for this IP
+    adminAuthLimiter.reset(ip);
 
     const response = NextResponse.json({ success: true });
     // Set HTTP-only session cookie for 24 hours

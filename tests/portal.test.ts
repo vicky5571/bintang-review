@@ -69,4 +69,38 @@ describe('Owner Portal Authentication & Server-side Verification', () => {
     const res = await POST(req);
     expect(res.status).toBe(404);
   });
+
+  it('should block excessive invalid PIN attempts with HTTP 429 Too Many Requests', async () => {
+    const ip = '192.0.2.99';
+    // 5 consecutive failed attempts
+    for (let i = 0; i < 5; i++) {
+      await POST(
+        new Request('http://localhost:3000/api/portal/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-forwarded-for': ip,
+          },
+          body: JSON.stringify({ slug: 'kopi-senja', pin: '0000' }),
+        })
+      );
+    }
+
+    // 6th attempt should be blocked with 429
+    const res = await POST(
+      new Request('http://localhost:3000/api/portal/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-forwarded-for': ip,
+        },
+        body: JSON.stringify({ slug: 'kopi-senja', pin: '1234' }),
+      })
+    );
+
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.error).toMatch(/Terlalu banyak percobaan/i);
+    expect(res.headers.get('Retry-After')).toBeDefined();
+  });
 });
