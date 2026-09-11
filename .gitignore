@@ -63,3 +63,6 @@ Thumbs.db
 *.tmp
 *.temp
 scratch/
+
+# Added by ggshield
+.cache_ggshield
