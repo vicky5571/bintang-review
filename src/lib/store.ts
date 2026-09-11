@@ -6,7 +6,7 @@ import {
   VenueAnalytics,
   SalesAgentSummary,
 } from './types';
-import { supabase, isSupabaseConfigured } from './supabase/client';
+import { supabase, supabaseAdmin, isSupabaseConfigured } from './supabase/client';
 
 // In-Memory Data Store fallback
 class InMemoryStore {
@@ -201,9 +201,10 @@ class StoreRepository {
   }
 
   async listVenues(): Promise<Venue[]> {
-    if (isSupabaseConfigured && supabase) {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from('venues')
           .select('*')
           .order('created_at', { ascending: false });
@@ -217,9 +218,10 @@ class StoreRepository {
   }
 
   async createVenue(data: Omit<Venue, 'id' | 'created_at' | 'updated_at'>): Promise<Venue> {
-    if (isSupabaseConfigured && supabase) {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
       try {
-        const { data: created, error } = await supabase
+        const { data: created, error } = await client
           .from('venues')
           .insert([data])
           .select()
@@ -234,9 +236,10 @@ class StoreRepository {
   }
 
   async updateVenue(id: string, updates: Partial<Venue>): Promise<Venue | null> {
-    if (isSupabaseConfigured && supabase) {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
       try {
-        const { data: updated, error } = await supabase
+        const { data: updated, error } = await client
           .from('venues')
           .update({ ...updates, updated_at: new Date().toISOString() })
           .eq('id', id)
@@ -286,9 +289,10 @@ class StoreRepository {
   }
 
   async listFeedback(venueId: string): Promise<FeedbackMessage[]> {
-    if (isSupabaseConfigured && supabase) {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from('feedback_messages')
           .select('*')
           .eq('venue_id', venueId)
@@ -303,9 +307,10 @@ class StoreRepository {
   }
 
   async getVenueAnalytics(venueId: string): Promise<VenueAnalytics> {
-    if (isSupabaseConfigured && supabase) {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
       try {
-        const { data: logs, error } = await supabase
+        const { data: logs, error } = await client
           .from('scan_logs')
           .select('*')
           .eq('venue_id', venueId);
@@ -313,10 +318,10 @@ class StoreRepository {
         if (!error && logs) {
           const today = new Date().toISOString().split('T')[0];
           const total_scans = logs.length;
-          const positive_count = logs.filter((l: any) => l.action_taken === 'positive_review').length;
-          const negative_count = logs.filter((l: any) => l.action_taken === 'negative_feedback').length;
-          const direct_count = logs.filter((l: any) => l.action_taken === 'direct_redirect').length;
-          const today_scans = logs.filter((l: any) => l.scanned_at?.startsWith(today)).length;
+          const positive_count = logs.filter((l: ScanLog) => l.action_taken === 'positive_review').length;
+          const negative_count = logs.filter((l: ScanLog) => l.action_taken === 'negative_feedback').length;
+          const direct_count = logs.filter((l: ScanLog) => l.action_taken === 'direct_redirect').length;
+          const today_scans = logs.filter((l: ScanLog) => l.scanned_at?.startsWith(today)).length;
           const rated_total = positive_count + negative_count;
           const satisfaction_rate = rated_total > 0 ? Math.round((positive_count / rated_total) * 100) : 100;
 
@@ -337,10 +342,11 @@ class StoreRepository {
   }
 
   async listSalesAgents(): Promise<SalesAgentSummary[]> {
-    if (isSupabaseConfigured && supabase) {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
       try {
-        const { data: agents } = await supabase.from('sales_agents').select('*');
-        const { data: allVenues } = await supabase.from('venues').select('sales_id, deal_amount');
+        const { data: agents } = await client.from('sales_agents').select('*');
+        const { data: allVenues } = await client.from('venues').select('sales_id, deal_amount');
 
         if (agents && agents.length > 0) {
           return agents.map((agent: any) => {
