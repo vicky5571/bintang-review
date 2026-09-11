@@ -213,14 +213,14 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
                 type="checkbox"
                 checked={formData.is_active}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
+                className="w-4 h-4 rounded text-[#00c48c] focus:ring-[#00c48c]"
               />
               <span className="text-xs font-medium text-slate-700">Status Stand Akrilik Aktif</span>
             </label>
 
             <button
               type="submit"
-              className="px-5 py-2.5 bg-slate-900 text-white font-semibold rounded-xl flex items-center gap-2 hover:bg-slate-800 active:scale-95"
+              className="px-5 py-2.5 bg-[#00c48c] hover:bg-[#00a877] text-slate-950 font-bold rounded-xl flex items-center gap-2 shadow-md shadow-emerald-500/20 active:scale-95 transition"
             >
               {venue ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               {venue ? 'Simpan Perubahan' : 'Buat Venue'}

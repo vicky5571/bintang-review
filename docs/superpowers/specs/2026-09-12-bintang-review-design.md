@@ -65,7 +65,7 @@
   * Edge Middleware (`middleware.ts`) for sub-150ms instant redirect on `/r/:slug` for `direct_google` mode without client blank-screen.
   * Ultra-lightweight Server & Client Components (<30KB client payload) for customer tap rating funnel.
   * Unified single-codebase architecture for Customer Tap, Owner Portal (`/portal/:slug`), and Super Admin (`/admin`).
-* **Styling & UI**: **Tailwind CSS** with custom design tokens, modern typography, haptic feedback (`navigator.vibrate`), and smooth interactive micro-animations.
+* **Styling & UI**: **Tailwind CSS** with **Voney Money Manager** signature color palette (Primary Emerald `#00c48c`, Light Mint `#44ebcf`, Dark Emerald `#00a877`, Charcoal `#171717`, Gold Amber `#f59e0b` rating stars), modern typography, native haptic feedback (`navigator.vibrate`), and smooth micro-animations.
 * **Backend & Database**: **Supabase (PostgreSQL)**:
   * Fast REST APIs with Connection Pooling (PgBouncer/Supavisor) to handle peak rush-hour taps.
   * Built-in Row Level Security (RLS) for multi-tenant data protection.

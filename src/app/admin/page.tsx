@@ -54,7 +54,7 @@ export default function AdminPage() {
             setSelectedVenueForEdit(null);
             setIsModalOpen(true);
           }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow transition active:scale-95"
+          className="flex items-center gap-1.5 px-4 py-2 bg-[#00c48c] hover:bg-[#00a877] text-slate-950 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition active:scale-95"
         >
           <Plus className="w-4 h-4" /> Tambah Klien Venue
         </button>
@@ -66,7 +66,7 @@ export default function AdminPage() {
         <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Store className="w-5 h-5 text-amber-500" />
+              <Store className="w-5 h-5 text-[#00c48c]" />
               <h2 className="font-bold text-slate-800">Daftar Klien Kafe & Venue ({venues.length})</h2>
             </div>
           </div>
@@ -101,8 +101,8 @@ export default function AdminPage() {
                       <span
                         className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                           v.redirect_mode === 'smart_funnel'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            : 'bg-teal-50 text-teal-800 border border-teal-200'
                         }`}
                       >
                         {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
@@ -125,7 +125,7 @@ export default function AdminPage() {
                           setSelectedVenueForQr(v);
                           setIsQrModalOpen(true);
                         }}
-                        className="p-2 text-slate-600 hover:text-amber-600 rounded-lg hover:bg-slate-100"
+                        className="p-2 text-slate-600 hover:text-[#00c48c] rounded-lg hover:bg-slate-100 transition"
                         title="Download QR & NFC"
                       >
                         <QrCode className="w-4 h-4" />
@@ -158,7 +158,7 @@ export default function AdminPage() {
         {/* Sales & Commission Dashboard */}
         <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <DollarSign className="w-5 h-5 text-emerald-600" />
+            <DollarSign className="w-5 h-5 text-[#00c48c]" />
             <h2 className="font-bold text-slate-800">Mesin Komisi Sales & Referral Partner</h2>
           </div>
 
@@ -167,7 +167,7 @@ export default function AdminPage() {
               <div key={agent.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-slate-900">{agent.name}</h3>
-                  <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">
+                  <span className="text-xs bg-emerald-50 text-[#00a877] border border-emerald-200/60 px-2 py-0.5 rounded-full font-bold">
                     {agent.commission_rate}%
                   </span>
                 </div>
@@ -175,7 +175,7 @@ export default function AdminPage() {
                 <div className="text-xs text-slate-500">
                   Total Deal: Rp {agent.total_revenue.toLocaleString('id-ID')}
                 </div>
-                <div className="pt-2 border-t font-bold text-sm text-emerald-700">
+                <div className="pt-2 border-t font-black text-sm text-[#00a877]">
                   Komisi Berhak Diterima: Rp {agent.earned_commission.toLocaleString('id-ID')}
                 </div>
               </div>

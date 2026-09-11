@@ -51,9 +51,9 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
           <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between text-slate-500 mb-2">
               <span className="text-xs font-semibold uppercase">Tingkat Kepuasan</span>
-              <Star className="w-4 h-4 text-amber-500" />
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
             </div>
-            <div className="text-3xl font-black text-amber-500">{analytics.satisfaction_rate}%</div>
+            <div className="text-3xl font-black text-[#00c48c]">{analytics.satisfaction_rate}%</div>
             <p className="text-xs text-slate-400 mt-1">Rating 4-5 bintang langsung ke Google</p>
           </div>
 
@@ -131,7 +131,7 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
             href={supportWaUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl transition whitespace-nowrap shadow"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#00c48c] hover:bg-[#00a877] active:scale-95 text-slate-950 text-xs font-bold rounded-xl transition whitespace-nowrap shadow-md shadow-emerald-500/20"
           >
             <PhoneCall className="w-3.5 h-3.5" /> Chat Concierge
           </a>

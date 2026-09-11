@@ -30,7 +30,7 @@ export function OwnerPinModal({ venueName, correctPin, onSuccess }: OwnerPinModa
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm bg-white rounded-3xl p-8 text-center shadow-2xl">
-        <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-amber-600">
+        <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#00c48c] border border-emerald-100/60 shadow-sm">
           <Lock className="w-7 h-7" />
         </div>
         <h2 className="text-xl font-bold text-slate-800">Owner Portal</h2>
@@ -51,14 +51,14 @@ export function OwnerPinModal({ venueName, correctPin, onSuccess }: OwnerPinModa
                 setPin(e.target.value);
                 setError(false);
               }}
-              className="w-full text-center tracking-widest text-2xl py-3 border-2 rounded-xl font-bold focus:border-amber-500 focus:outline-none"
+              className="w-full text-center tracking-widest text-2xl py-3 border-2 rounded-xl font-bold focus:border-[#00c48c] focus:outline-none"
             />
             {error && <p className="text-xs text-rose-500 font-medium mt-2">PIN salah, silakan coba lagi</p>}
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
+            className="w-full py-3 bg-gradient-to-r from-[#00c48c] to-[#00a877] hover:brightness-105 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-98 transition"
           >
             Buka Portal <ArrowRight className="w-4 h-4" />
           </button>
