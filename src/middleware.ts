@@ -53,6 +53,16 @@ export async function middleware(request: NextRequest) {
 
     // If venue is in direct_google mode and has a valid review URL, execute sub-150ms 302 redirect
     if (venue.is_active && venue.redirect_mode === 'direct_google' && venue.google_review_url) {
+      // Validate redirect destination: Must use secure https: protocol (prevents javascript: or open redirect abuses)
+      try {
+        const parsed = new URL(venue.google_review_url);
+        if (parsed.protocol !== 'https:') {
+          return NextResponse.next();
+        }
+      } catch {
+        return NextResponse.next();
+      }
+
       const userAgent = request.headers.get('user-agent') || '';
       const isMobile = /mobile|android|iphone|ipad|ipod/i.test(userAgent);
 

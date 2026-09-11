@@ -78,4 +78,24 @@ describe('Edge Middleware (/r/:slug)', () => {
 
     expect(res.status).not.toBe(302);
   });
+
+  it('should reject unsafe protocols (e.g. javascript:) and fallback to NextResponse.next()', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'venue-malicious',
+          slug: 'evil-cafe',
+          redirect_mode: 'direct_google',
+          google_review_url: 'javascript:alert(1)',
+          is_active: true,
+        },
+      ],
+    });
+
+    const req = new NextRequest('http://localhost:3000/r/evil-cafe');
+    const res = await middleware(req);
+
+    expect(res.status).not.toBe(302);
+  });
 });
