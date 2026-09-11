@@ -60,13 +60,20 @@
                                                            └── Both Options
 ```
 
-### Technology Choices:
-* **Frontend**: Responsive, mobile-first Web Application built with modern HTML/CSS/JavaScript with responsive layout tokens. Instant loading (<1s) for customer tap links.
+### Technology Choices (Option A - Scalable Edge Full-Stack):
+* **Full-Stack Framework**: **Next.js 15 (App Router, TypeScript)**:
+  * Edge Middleware (`middleware.ts`) for sub-150ms instant redirect on `/r/:slug` for `direct_google` mode without client blank-screen.
+  * Ultra-lightweight Server & Client Components (<30KB client payload) for customer tap rating funnel.
+  * Unified single-codebase architecture for Customer Tap, Owner Portal (`/portal/:slug`), and Super Admin (`/admin`).
+* **Styling & UI**: **Tailwind CSS** with custom design tokens, modern typography, haptic feedback (`navigator.vibrate`), and smooth interactive micro-animations.
 * **Backend & Database**: **Supabase (PostgreSQL)**:
-  * Fast REST APIs.
-  * Real-time scan logs and counters.
-  * Built-in Row Level Security (RLS).
-* **Hosting & CDN**: Edge deployment (Vercel / Cloudflare Pages) for near-instant latency across Indonesia.
+  * Fast REST APIs with Connection Pooling (PgBouncer/Supavisor) to handle peak rush-hour taps.
+  * Built-in Row Level Security (RLS) for multi-tenant data protection.
+  * Optimized composite indexing for `scan_logs (venue_id, scanned_at DESC)`.
+* **Caching & Scalability Strategy**:
+  * Edge Config / In-memory caching with on-demand tag revalidation (`revalidateTag`) for venue routing settings.
+  * Asynchronous scan logging to ensure customer redirection is never blocked by database latency.
+* **Hosting & CDN**: Edge deployment (Vercel / Cloudflare) with Southeast Asia edge PoPs (Jakarta / Singapore).
 
 ---
 
