@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Venue, SalesAgentSummary } from '@/lib/types';
+import { Venue, SalesAgentSummary, RedirectMode, FeedbackChannel } from '@/lib/types';
 import { X, Save, Plus } from 'lucide-react';
 
 interface AdminVenueModalProps {
@@ -13,12 +13,24 @@ interface AdminVenueModalProps {
 }
 
 export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }: AdminVenueModalProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    slug: string;
+    google_review_url: string;
+    redirect_mode: RedirectMode;
+    feedback_channels: FeedbackChannel;
+    whatsapp_number: string;
+    owner_access_pin: string;
+    is_active: boolean;
+    sales_id: string;
+    deal_amount: number;
+    monthly_retainer_fee: number;
+  }>({
     name: '',
     slug: '',
     google_review_url: '',
-    redirect_mode: 'smart_funnel' as const,
-    feedback_channels: 'whatsapp' as const,
+    redirect_mode: 'smart_funnel',
+    feedback_channels: 'whatsapp',
     whatsapp_number: '',
     owner_access_pin: '1234',
     is_active: true,
