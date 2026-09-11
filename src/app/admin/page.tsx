@@ -1,0 +1,210 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Venue, SalesAgentSummary } from '@/lib/types';
+import { dataStore } from '@/lib/store';
+import { Plus, QrCode, ExternalLink, DollarSign, Store } from 'lucide-react';
+import { AdminVenueModal } from '@/components/AdminVenueModal';
+import { QrGeneratorModal } from '@/components/QrGeneratorModal';
+
+export default function AdminPage() {
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [salesAgents, setSalesAgents] = useState<SalesAgentSummary[]>([]);
+  const [selectedVenueForEdit, setSelectedVenueForEdit] = useState<Venue | null>(null);
+  const [selectedVenueForQr, setSelectedVenueForQr] = useState<Venue | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+
+  const loadData = async () => {
+    const vList = await dataStore.listVenues();
+    setVenues(vList);
+    const saList = await dataStore.listSalesAgents();
+    setSalesAgents(saList);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleSaveVenue = async (formData: Partial<Venue>) => {
+    if (selectedVenueForEdit) {
+      await dataStore.updateVenue(selectedVenueForEdit.id, formData);
+    } else {
+      await dataStore.createVenue(formData as any);
+    }
+    setIsModalOpen(false);
+    setSelectedVenueForEdit(null);
+    await loadData();
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100 pb-16">
+      {/* Top Navbar */}
+      <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">⭐</span>
+          <div>
+            <h1 className="text-lg font-black tracking-tight">Bintang Review — Super Admin</h1>
+            <p className="text-xs text-slate-400">Developer & Agency Management Console</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            setSelectedVenueForEdit(null);
+            setIsModalOpen(true);
+          }}
+          className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow transition active:scale-95"
+        >
+          <Plus className="w-4 h-4" /> Tambah Klien Venue
+        </button>
+      </header>
+
+      {/* Main Container */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 space-y-8">
+        {/* Venues Table Card */}
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Store className="w-5 h-5 text-amber-500" />
+              <h2 className="font-bold text-slate-800">Daftar Klien Kafe & Venue ({venues.length})</h2>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-slate-500 text-xs uppercase border-b">
+                <tr>
+                  <th className="px-6 py-3">Nama Venue</th>
+                  <th className="px-6 py-3">Slug & Tap Link</th>
+                  <th className="px-6 py-3">Mode</th>
+                  <th className="px-6 py-3">PIN Owner</th>
+                  <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {venues.map((v) => (
+                  <tr key={v.id} className="hover:bg-slate-50">
+                    <td className="px-6 py-4 font-bold text-slate-900">{v.name}</td>
+                    <td className="px-6 py-4">
+                      <a
+                        href={`/r/${v.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 font-mono text-xs flex items-center gap-1 hover:underline"
+                      >
+                        /r/{v.slug} <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                          v.redirect_mode === 'smart_funnel'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}
+                      >
+                        {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-mono font-bold text-slate-600">{v.owner_access_pin}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center gap-1 text-xs font-semibold ${
+                          v.is_active ? 'text-emerald-600' : 'text-slate-400'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        {v.is_active ? 'Aktif' : 'Non-Aktif'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right space-x-2">
+                      <button
+                        onClick={() => {
+                          setSelectedVenueForQr(v);
+                          setIsQrModalOpen(true);
+                        }}
+                        className="p-2 text-slate-600 hover:text-amber-600 rounded-lg hover:bg-slate-100"
+                        title="Download QR & NFC"
+                      >
+                        <QrCode className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedVenueForEdit(v);
+                          setIsModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 bg-slate-100 text-slate-800 font-medium text-xs rounded-lg hover:bg-slate-200"
+                      >
+                        Edit
+                      </button>
+                      <a
+                        href={`/portal/${v.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 bg-slate-900 text-white font-medium text-xs rounded-lg hover:bg-slate-800"
+                      >
+                        Portal
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Sales & Commission Dashboard */}
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <DollarSign className="w-5 h-5 text-emerald-600" />
+            <h2 className="font-bold text-slate-800">Mesin Komisi Sales & Referral Partner</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {salesAgents.map((agent) => (
+              <div key={agent.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-slate-900">{agent.name}</h3>
+                  <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">
+                    {agent.commission_rate}%
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500">Venue Terjual: {agent.total_venues} kafe</div>
+                <div className="text-xs text-slate-500">
+                  Total Deal: Rp {agent.total_revenue.toLocaleString('id-ID')}
+                </div>
+                <div className="pt-2 border-t font-bold text-sm text-emerald-700">
+                  Komisi Berhak Diterima: Rp {agent.earned_commission.toLocaleString('id-ID')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+
+      {/* Edit / Create Modal */}
+      <AdminVenueModal
+        venue={selectedVenueForEdit}
+        isOpen={isModalOpen}
+        salesAgents={salesAgents}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedVenueForEdit(null);
+        }}
+        onSave={handleSaveVenue}
+      />
+
+      {/* QR & NFC Asset Viewer */}
+      <QrGeneratorModal
+        venue={selectedVenueForQr}
+        isOpen={isQrModalOpen}
+        onClose={() => {
+          setIsQrModalOpen(false);
+          setSelectedVenueForQr(null);
+        }}
+      />
+    </div>
+  );
+}
