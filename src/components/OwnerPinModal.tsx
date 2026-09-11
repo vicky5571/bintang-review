@@ -1,29 +1,65 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Lock, ArrowRight } from 'lucide-react';
+import { Lock, ArrowRight, Loader2 } from 'lucide-react';
 
 export function verifyOwnerPin(inputPin: string, correctPin: string): boolean {
   return inputPin.trim() === correctPin.trim();
 }
 
 interface OwnerPinModalProps {
-  venueName: string;
-  correctPin: string;
-  onSuccess: () => void;
+  venueName?: string;
+  onVerify?: (pin: string) => Promise<{ success: boolean; error?: string } | boolean>;
+  correctPin?: string;
+  onSuccess?: () => void;
 }
 
-export function OwnerPinModal({ venueName, correctPin, onSuccess }: OwnerPinModalProps) {
+export function OwnerPinModal({
+  venueName,
+  onVerify,
+  correctPin,
+  onSuccess,
+}: OwnerPinModalProps) {
   const [pin, setPin] = useState('');
-  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (verifyOwnerPin(pin, correctPin)) {
-      onSuccess();
-    } else {
-      setError(true);
-      setPin('');
+    if (!pin.trim() || loading) return;
+
+    // Server-side verification flow
+    if (onVerify) {
+      setLoading(true);
+      setErrorMessage(null);
+      try {
+        const res = await onVerify(pin);
+        if (typeof res === 'boolean') {
+          if (!res) {
+            setErrorMessage('PIN salah, silakan coba lagi');
+            setPin('');
+          }
+        } else if (!res.success) {
+          setErrorMessage(res.error || 'PIN salah, silakan coba lagi');
+          setPin('');
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Terjadi kesalahan verifikasi';
+        setErrorMessage(message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Fallback client check
+    if (correctPin) {
+      if (verifyOwnerPin(pin, correctPin)) {
+        onSuccess?.();
+      } else {
+        setErrorMessage('PIN salah, silakan coba lagi');
+        setPin('');
+      }
     }
   };
 
@@ -34,7 +70,7 @@ export function OwnerPinModal({ venueName, correctPin, onSuccess }: OwnerPinModa
           <Lock className="w-7 h-7" />
         </div>
         <h2 className="text-xl font-bold text-slate-800">Owner Portal</h2>
-        <p className="text-xs text-slate-500 mt-1">{venueName}</p>
+        {venueName && <p className="text-xs text-slate-500 mt-1">{venueName}</p>}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
@@ -45,22 +81,36 @@ export function OwnerPinModal({ venueName, correctPin, onSuccess }: OwnerPinModa
               type="password"
               maxLength={6}
               autoFocus
+              disabled={loading}
               placeholder="••••"
               value={pin}
               onChange={(e) => {
                 setPin(e.target.value);
-                setError(false);
+                setErrorMessage(null);
               }}
-              className="w-full text-center tracking-widest text-2xl py-3 border-2 rounded-xl font-bold focus:border-[#00c48c] focus:outline-none"
+              className="w-full text-center tracking-widest text-2xl py-3 border-2 rounded-xl font-bold focus:border-[#00c48c] focus:outline-none disabled:bg-slate-100"
             />
-            {error && <p className="text-xs text-rose-500 font-medium mt-2">PIN salah, silakan coba lagi</p>}
+            {errorMessage && (
+              <p className="text-xs text-rose-500 font-medium mt-2 animate-shake">
+                {errorMessage}
+              </p>
+            )}
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-gradient-to-r from-[#00c48c] to-[#00a877] hover:brightness-105 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-98 transition"
+            disabled={loading || !pin.trim()}
+            className="w-full py-3 bg-gradient-to-r from-[#00c48c] to-[#00a877] hover:brightness-105 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-98 transition"
           >
-            Buka Portal <ArrowRight className="w-4 h-4" />
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Memverifikasi...
+              </>
+            ) : (
+              <>
+                Buka Portal <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
       </div>
