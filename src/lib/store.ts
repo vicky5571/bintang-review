@@ -6,12 +6,13 @@ import {
   VenueAnalytics,
   SalesAgentSummary,
 } from './types';
+import { supabase, isSupabaseConfigured } from './supabase/client';
 
-// In-Memory Data Store with default mock venue for local development & testing
+// In-Memory Data Store fallback
 class InMemoryStore {
   private salesAgents: SalesAgent[] = [
     {
-      id: 'agent-1',
+      id: '00000000-0000-0000-0000-000000000001',
       name: 'Budi Santoso (Partner BD)',
       phone_whatsapp: '628123456789',
       email: 'budi@bintangreview.id',
@@ -24,7 +25,7 @@ class InMemoryStore {
 
   private venues: Venue[] = [
     {
-      id: 'venue-1',
+      id: '00000000-0000-0000-0000-000000000002',
       slug: 'kopi-senja',
       name: 'Kopi Senja Utama',
       logo_url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&auto=format&fit=crop&q=80',
@@ -35,7 +36,7 @@ class InMemoryStore {
       feedback_email: 'manager@kopisenja.com',
       owner_access_pin: '1234',
       is_active: true,
-      sales_id: 'agent-1',
+      sales_id: '00000000-0000-0000-0000-000000000001',
       deal_amount: 599000,
       monthly_retainer_fee: 49000,
       deal_date: new Date().toISOString().split('T')[0],
@@ -157,4 +158,214 @@ class InMemoryStore {
   }
 }
 
-export const dataStore = new InMemoryStore();
+// Unified Store with live Supabase client and local fallback
+class StoreRepository {
+  private inMemory = new InMemoryStore();
+
+  reset() {
+    this.inMemory.reset();
+  }
+
+  async getVenueBySlug(slug: string): Promise<Venue | null> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('venues')
+          .select('*')
+          .eq('slug', slug.toLowerCase())
+          .maybeSingle();
+
+        if (!error && data) return data as Venue;
+      } catch (err) {
+        console.warn('Supabase getVenueBySlug error, using fallback:', err);
+      }
+    }
+    return this.inMemory.getVenueBySlug(slug);
+  }
+
+  async getVenueById(id: string): Promise<Venue | null> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('venues')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (!error && data) return data as Venue;
+      } catch (err) {
+        console.warn('Supabase getVenueById error, using fallback:', err);
+      }
+    }
+    return this.inMemory.getVenueById(id);
+  }
+
+  async listVenues(): Promise<Venue[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('venues')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data && data.length > 0) return data as Venue[];
+      } catch (err) {
+        console.warn('Supabase listVenues error, using fallback:', err);
+      }
+    }
+    return this.inMemory.listVenues();
+  }
+
+  async createVenue(data: Omit<Venue, 'id' | 'created_at' | 'updated_at'>): Promise<Venue> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: created, error } = await supabase
+          .from('venues')
+          .insert([data])
+          .select()
+          .single();
+
+        if (!error && created) return created as Venue;
+      } catch (err) {
+        console.warn('Supabase createVenue error, using fallback:', err);
+      }
+    }
+    return this.inMemory.createVenue(data);
+  }
+
+  async updateVenue(id: string, updates: Partial<Venue>): Promise<Venue | null> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: updated, error } = await supabase
+          .from('venues')
+          .update({ ...updates, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (!error && updated) return updated as Venue;
+      } catch (err) {
+        console.warn('Supabase updateVenue error, using fallback:', err);
+      }
+    }
+    return this.inMemory.updateVenue(id, updates);
+  }
+
+  async logScan(data: Omit<ScanLog, 'id' | 'scanned_at'>): Promise<ScanLog> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: logged, error } = await supabase
+          .from('scan_logs')
+          .insert([data])
+          .select()
+          .single();
+
+        if (!error && logged) return logged as ScanLog;
+      } catch (err) {
+        console.warn('Supabase logScan error, using fallback:', err);
+      }
+    }
+    return this.inMemory.logScan(data);
+  }
+
+  async saveFeedback(data: Omit<FeedbackMessage, 'id' | 'created_at'>): Promise<FeedbackMessage> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: saved, error } = await supabase
+          .from('feedback_messages')
+          .insert([data])
+          .select()
+          .single();
+
+        if (!error && saved) return saved as FeedbackMessage;
+      } catch (err) {
+        console.warn('Supabase saveFeedback error, using fallback:', err);
+      }
+    }
+    return this.inMemory.saveFeedback(data);
+  }
+
+  async listFeedback(venueId: string): Promise<FeedbackMessage[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('feedback_messages')
+          .select('*')
+          .eq('venue_id', venueId)
+          .order('created_at', { ascending: false });
+
+        if (!error && data) return data as FeedbackMessage[];
+      } catch (err) {
+        console.warn('Supabase listFeedback error, using fallback:', err);
+      }
+    }
+    return this.inMemory.listFeedback(venueId);
+  }
+
+  async getVenueAnalytics(venueId: string): Promise<VenueAnalytics> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: logs, error } = await supabase
+          .from('scan_logs')
+          .select('*')
+          .eq('venue_id', venueId);
+
+        if (!error && logs) {
+          const today = new Date().toISOString().split('T')[0];
+          const total_scans = logs.length;
+          const positive_count = logs.filter((l: any) => l.action_taken === 'positive_review').length;
+          const negative_count = logs.filter((l: any) => l.action_taken === 'negative_feedback').length;
+          const direct_count = logs.filter((l: any) => l.action_taken === 'direct_redirect').length;
+          const today_scans = logs.filter((l: any) => l.scanned_at?.startsWith(today)).length;
+          const rated_total = positive_count + negative_count;
+          const satisfaction_rate = rated_total > 0 ? Math.round((positive_count / rated_total) * 100) : 100;
+
+          return {
+            total_scans,
+            positive_count,
+            negative_count,
+            direct_count,
+            satisfaction_rate,
+            today_scans,
+          };
+        }
+      } catch (err) {
+        console.warn('Supabase getVenueAnalytics error, using fallback:', err);
+      }
+    }
+    return this.inMemory.getVenueAnalytics(venueId);
+  }
+
+  async listSalesAgents(): Promise<SalesAgentSummary[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: agents } = await supabase.from('sales_agents').select('*');
+        const { data: allVenues } = await supabase.from('venues').select('sales_id, deal_amount');
+
+        if (agents && agents.length > 0) {
+          return agents.map((agent: any) => {
+            const agentVenues = (allVenues || []).filter((v: any) => v.sales_id === agent.id);
+            const total_venues = agentVenues.length;
+            const total_revenue = agentVenues.reduce((sum: number, v: any) => sum + (Number(v.deal_amount) || 0), 0);
+            const earned_commission =
+              agent.commission_type === 'percentage'
+                ? (total_revenue * Number(agent.commission_rate)) / 100
+                : total_venues * Number(agent.commission_rate);
+
+            return {
+              ...agent,
+              total_venues,
+              total_revenue,
+              earned_commission,
+            };
+          });
+        }
+      } catch (err) {
+        console.warn('Supabase listSalesAgents error, using fallback:', err);
+      }
+    }
+    return this.inMemory.listSalesAgents();
+  }
+}
+
+export const dataStore = new StoreRepository();
