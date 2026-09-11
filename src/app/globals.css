@@ -4,17 +4,18 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-  --primary: #00c48c;
-  --primary-light: #44ebcf;
-  --primary-dark: #00a877;
-  --success: #00c48c;
+  --foreground: #0f172a;
+  --primary: #84cc16;
+  --primary-cyan: #06b6d4;
+  --primary-light: #a3e635;
+  --primary-dark: #65a30d;
+  --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
-  --muted: #6b7280;
-  --border: #e5e7eb;
+  --muted: #64748b;
+  --border: #e2e8f0;
   --card: #ffffff;
-  --card-foreground: #171717;
+  --card-foreground: #0f172a;
 }
 
 body {

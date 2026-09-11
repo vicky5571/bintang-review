@@ -70,7 +70,7 @@ export default function AdminPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500">
         Memverifikasi akses console admin...
       </div>
     );
@@ -88,14 +88,18 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-16">
+    <div className="min-h-screen bg-slate-50/70 pb-16">
       {/* Top Navbar */}
-      <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">⭐</span>
+      <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#84cc16] via-[#10b981] to-[#06b6d4] text-white flex items-center justify-center font-black shadow-md shadow-lime-500/15">
+            <Store className="w-5 h-5" />
+          </div>
           <div>
-            <h1 className="text-lg font-black tracking-tight">Bintang Review — Super Admin</h1>
-            <p className="text-xs text-slate-400">Developer & Agency Management Console</p>
+            <h1 className="text-lg font-black tracking-tight text-slate-900">
+              Bintang<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">Review</span> — Super Admin
+            </h1>
+            <p className="text-xs text-slate-500">Developer & Agency Management Console</p>
           </div>
         </div>
 
@@ -105,7 +109,7 @@ export default function AdminPage() {
               setSelectedVenueForEdit(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#00c48c] hover:bg-[#00a877] text-slate-950 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 transition active:scale-95"
           >
             <Plus className="w-4 h-4" /> Tambah Klien Venue
           </button>
@@ -113,7 +117,7 @@ export default function AdminPage() {
           <button
             onClick={handleLogout}
             title="Kunci & Keluar Panel Admin"
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs font-semibold rounded-xl border border-slate-200 transition"
           >
             <LogOut className="w-3.5 h-3.5" /> Keluar
           </button>
@@ -123,36 +127,36 @@ export default function AdminPage() {
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 space-y-8">
         {/* Venues Table Card */}
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <section className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Store className="w-5 h-5 text-[#00c48c]" />
+              <Store className="w-5 h-5 text-[#10b981]" />
               <h2 className="font-bold text-slate-800">Daftar Klien Kafe & Venue ({venues.length})</h2>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500 text-xs uppercase border-b">
+              <thead className="bg-slate-50/80 text-slate-500 text-xs uppercase border-b border-slate-100">
                 <tr>
-                  <th className="px-6 py-3">Nama Venue</th>
-                  <th className="px-6 py-3">Slug & Tap Link</th>
-                  <th className="px-6 py-3">Mode</th>
-                  <th className="px-6 py-3">PIN Owner</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Aksi</th>
+                  <th className="px-6 py-3.5">Nama Venue</th>
+                  <th className="px-6 py-3.5">Slug & Tap Link</th>
+                  <th className="px-6 py-3.5">Mode</th>
+                  <th className="px-6 py-3.5">PIN Owner</th>
+                  <th className="px-6 py-3.5">Status</th>
+                  <th className="px-6 py-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {venues.map((v) => (
-                  <tr key={v.id} className="hover:bg-slate-50">
+                  <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-900">{v.name}</td>
                     <td className="px-6 py-4">
                       <a
                         href={`/r/${v.slug}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-blue-600 font-mono text-xs flex items-center gap-1 hover:underline"
+                        className="text-cyan-600 hover:text-cyan-700 font-mono text-xs flex items-center gap-1 hover:underline"
                       >
                         /r/{v.slug} <ExternalLink className="w-3 h-3" />
                       </a>
@@ -161,8 +165,8 @@ export default function AdminPage() {
                       <span
                         className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                           v.redirect_mode === 'smart_funnel'
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                            : 'bg-teal-50 text-teal-800 border border-teal-200'
+                            ? 'bg-lime-50 text-lime-800 border border-lime-200/80'
+                            : 'bg-cyan-50 text-cyan-800 border border-cyan-200/80'
                         }`}
                       >
                         {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
@@ -171,7 +175,7 @@ export default function AdminPage() {
                     <td className="px-6 py-4 font-mono font-bold text-slate-600">{v.owner_access_pin}</td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center gap-1 text-xs font-semibold ${
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
                           v.is_active ? 'text-emerald-600' : 'text-slate-400'
                         }`}
                       >
@@ -185,7 +189,7 @@ export default function AdminPage() {
                           setSelectedVenueForQr(v);
                           setIsQrModalOpen(true);
                         }}
-                        className="p-2 text-slate-600 hover:text-[#00c48c] rounded-lg hover:bg-slate-100 transition"
+                        className="p-2 text-slate-500 hover:text-cyan-600 rounded-lg hover:bg-slate-100 transition"
                         title="Download QR & NFC"
                       >
                         <QrCode className="w-4 h-4" />
@@ -195,7 +199,7 @@ export default function AdminPage() {
                           setSelectedVenueForEdit(v);
                           setIsModalOpen(true);
                         }}
-                        className="px-3 py-1.5 bg-slate-100 text-slate-800 font-medium text-xs rounded-lg hover:bg-slate-200"
+                        className="px-3 py-1.5 bg-slate-100 text-slate-700 font-medium text-xs rounded-lg hover:bg-slate-200 transition"
                       >
                         Edit
                       </button>
@@ -203,7 +207,7 @@ export default function AdminPage() {
                         href={`/portal/${v.slug}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3 py-1.5 bg-slate-900 text-white font-medium text-xs rounded-lg hover:bg-slate-800"
+                        className="px-3 py-1.5 bg-slate-900 text-white font-medium text-xs rounded-lg hover:bg-slate-800 transition"
                       >
                         Portal
                       </a>
@@ -216,18 +220,18 @@ export default function AdminPage() {
         </section>
 
         {/* Sales & Commission Dashboard */}
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <section className="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <DollarSign className="w-5 h-5 text-[#00c48c]" />
+            <DollarSign className="w-5 h-5 text-[#84cc16]" />
             <h2 className="font-bold text-slate-800">Mesin Komisi Sales & Referral Partner</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {salesAgents.map((agent) => (
-              <div key={agent.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 space-y-2">
+              <div key={agent.id} className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-2 hover:border-emerald-200 transition">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-slate-900">{agent.name}</h3>
-                  <span className="text-xs bg-emerald-50 text-[#00a877] border border-emerald-200/60 px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-xs bg-gradient-to-r from-lime-50 to-cyan-50 text-slate-800 border border-emerald-200/80 px-2.5 py-0.5 rounded-full font-bold">
                     {agent.commission_rate}%
                   </span>
                 </div>
@@ -235,7 +239,7 @@ export default function AdminPage() {
                 <div className="text-xs text-slate-500">
                   Total Deal: Rp {agent.total_revenue.toLocaleString('id-ID')}
                 </div>
-                <div className="pt-2 border-t font-black text-sm text-[#00a877]">
+                <div className="pt-2 border-t border-slate-100 font-black text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">
                   Komisi Berhak Diterima: Rp {agent.earned_commission.toLocaleString('id-ID')}
                 </div>
               </div>

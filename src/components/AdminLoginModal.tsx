@@ -42,20 +42,23 @@ export function AdminLoginModal({ onSuccess }: AdminLoginModalProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center shadow-2xl">
-        <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#00c48c] shadow-lg shadow-emerald-500/10">
-          <ShieldCheck className="w-8 h-8" />
+    <div className="min-h-screen bg-slate-50/70 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Soft Glows */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[350px] bg-gradient-to-r from-lime-200/25 via-emerald-200/20 to-cyan-200/25 blur-3xl -z-10 pointer-events-none rounded-full" />
+
+      <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl p-8 text-center shadow-2xl shadow-slate-200/70">
+        <div className="w-16 h-16 bg-gradient-to-br from-lime-50 to-cyan-50 border border-emerald-200/60 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#84cc16] shadow-sm">
+          <ShieldCheck className="w-8 h-8 text-[#10b981]" />
         </div>
 
-        <h1 className="text-2xl font-black text-white tracking-tight">Super Admin Console</h1>
-        <p className="text-xs text-slate-400 mt-1.5">
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Super Admin Console</h1>
+        <p className="text-xs text-slate-500 mt-1.5">
           Bintang Review — Agency & Platform Management
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-4 text-left">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-2">
+            <label className="block text-xs font-semibold text-slate-600 mb-2">
               Master Password Admin
             </label>
             <div className="relative">
@@ -69,18 +72,18 @@ export function AdminLoginModal({ onSuccess }: AdminLoginModalProps) {
                   setPassword(e.target.value);
                   setErrorMessage(null);
                 }}
-                className="w-full px-4 py-3.5 bg-slate-800/80 border border-slate-700 text-white rounded-xl text-sm font-medium focus:outline-none focus:border-[#00c48c] focus:ring-2 focus:ring-emerald-500/20 transition disabled:opacity-50"
+                className="w-full px-4 py-3.5 bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl text-sm font-medium focus:outline-none focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 transition disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {errorMessage && (
-              <p className="text-xs text-rose-400 font-medium mt-2">
+              <p className="text-xs text-rose-500 font-medium mt-2">
                 {errorMessage}
               </p>
             )}
@@ -89,7 +92,7 @@ export function AdminLoginModal({ onSuccess }: AdminLoginModalProps) {
           <button
             type="submit"
             disabled={loading || !password.trim()}
-            className="w-full py-3.5 bg-gradient-to-r from-[#00c48c] to-[#00a877] hover:brightness-105 disabled:opacity-50 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-98 transition text-sm mt-4"
+            className="w-full py-3.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-98 transition text-sm mt-4"
           >
             {loading ? (
               <>
@@ -103,7 +106,7 @@ export function AdminLoginModal({ onSuccess }: AdminLoginModalProps) {
           </button>
         </form>
 
-        <p className="text-[11px] text-slate-500 mt-6">
+        <p className="text-[11px] text-slate-400 mt-6">
           Sistem terlindungi enkripsi sesi internal.
         </p>
       </div>

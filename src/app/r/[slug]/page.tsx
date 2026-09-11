@@ -37,10 +37,16 @@ export default async function CustomerTapPage({ params }: PageProps) {
 
   // Smart Funnel Mode
   return (
-    <main className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-slate-50 to-slate-100 flex flex-col justify-center px-4 py-12">
+    <main className="min-h-screen bg-white relative overflow-hidden flex flex-col justify-center px-4 py-12">
+      {/* Background Soft Glows */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[350px] bg-gradient-to-r from-lime-200/25 via-emerald-200/15 to-cyan-200/25 blur-3xl -z-10 pointer-events-none rounded-full" />
+
       <FunnelRating venue={venue} />
       <footer className="text-center mt-12 text-xs text-slate-400">
-        Didukung oleh <span className="font-bold text-[#00c48c]">Bintang Review</span>
+        Didukung oleh{' '}
+        <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">
+          Bintang Review
+        </span>
       </footer>
     </main>
   );

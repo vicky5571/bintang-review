@@ -97,9 +97,9 @@ export function PrivateFeedbackModal({ venue, rating, isOpen, onClose }: Private
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl bg-white p-6 shadow-2xl animate-in slide-in-from-bottom">
-        <div className="flex items-center justify-between pb-3 border-b">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 animate-in slide-in-from-bottom">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <span className="text-xl">🙏</span>
             <h3 className="font-bold text-slate-800">Beri Masukan untuk Manajemen</h3>
@@ -111,12 +111,12 @@ export function PrivateFeedbackModal({ venue, rating, isOpen, onClose }: Private
 
         {isSubmitted ? (
           <div className="py-8 text-center">
-            <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-3" />
+            <CheckCircle2 className="w-16 h-16 text-[#10b981] mx-auto mb-3" />
             <h4 className="text-lg font-bold text-slate-800">Terima Kasih Atas Masukan Anda</h4>
             <p className="text-sm text-slate-500 mt-1">Masukan Anda telah diteruskan langsung ke tim manajemen {venue.name}.</p>
             <button
               onClick={onClose}
-              className="mt-6 w-full py-2.5 bg-slate-900 text-white rounded-xl font-medium"
+              className="mt-6 w-full py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition active:scale-98"
             >
               Selesai
             </button>
@@ -135,7 +135,7 @@ export function PrivateFeedbackModal({ venue, rating, isOpen, onClose }: Private
                   placeholder="Mis: Siti"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-[#00c48c] focus:border-[#00c48c] focus:outline-none"
+                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-lime-500/20 focus:border-[#84cc16] focus:outline-none"
                 />
               </div>
               <div>
@@ -145,7 +145,7 @@ export function PrivateFeedbackModal({ venue, rating, isOpen, onClose }: Private
                   placeholder="Mis: 07"
                   value={tableNumber}
                   onChange={(e) => setTableNumber(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-[#00c48c] focus:border-[#00c48c] focus:outline-none"
+                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-lime-500/20 focus:border-[#84cc16] focus:outline-none"
                 />
               </div>
             </div>
@@ -158,14 +158,14 @@ export function PrivateFeedbackModal({ venue, rating, isOpen, onClose }: Private
                 placeholder="Ceritakan apa yang bisa kami tingkatkan..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-[#00c48c] focus:border-[#00c48c] focus:outline-none"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-lime-500/20 focus:border-[#84cc16] focus:outline-none"
               />
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-[#00c48c] hover:bg-[#00a877] active:scale-98 text-white font-bold rounded-xl transition shadow-lg shadow-emerald-500/25"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 active:scale-98 text-white font-bold rounded-xl transition shadow-lg shadow-emerald-500/20"
             >
               {venue.feedback_channels === 'whatsapp' || venue.feedback_channels === 'both' ? (
                 <>

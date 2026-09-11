@@ -64,9 +64,12 @@ export function OwnerPinModal({
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white rounded-3xl p-8 text-center shadow-2xl">
-        <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#00c48c] border border-emerald-100/60 shadow-sm">
+    <div className="min-h-screen bg-slate-50/70 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Soft Glows */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[350px] bg-gradient-to-r from-lime-200/25 via-emerald-200/20 to-cyan-200/25 blur-3xl -z-10 pointer-events-none rounded-full" />
+
+      <div className="w-full max-w-sm bg-white rounded-3xl p-8 text-center shadow-2xl shadow-slate-200/70 border border-slate-100">
+        <div className="w-14 h-14 bg-gradient-to-br from-lime-50 to-cyan-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#10b981] border border-emerald-200/60 shadow-sm">
           <Lock className="w-7 h-7" />
         </div>
         <h2 className="text-xl font-bold text-slate-800">Owner Portal</h2>
@@ -88,7 +91,7 @@ export function OwnerPinModal({
                 setPin(e.target.value);
                 setErrorMessage(null);
               }}
-              className="w-full text-center tracking-widest text-2xl py-3 border-2 rounded-xl font-bold focus:border-[#00c48c] focus:outline-none disabled:bg-slate-100"
+              className="w-full text-center tracking-widest text-2xl py-3 border-2 border-slate-200 rounded-2xl font-bold focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none disabled:bg-slate-100 transition"
             />
             {errorMessage && (
               <p className="text-xs text-rose-500 font-medium mt-2 animate-shake">
@@ -100,7 +103,7 @@ export function OwnerPinModal({
           <button
             type="submit"
             disabled={loading || !pin.trim()}
-            className="w-full py-3 bg-gradient-to-r from-[#00c48c] to-[#00a877] hover:brightness-105 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-98 transition"
+            className="w-full py-3 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 disabled:opacity-50 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-98 transition"
           >
             {loading ? (
               <>

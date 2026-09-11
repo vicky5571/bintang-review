@@ -79,9 +79,9 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-3 border-b">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
+      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <h3 className="font-bold text-slate-800">
             {venue ? `Edit Venue — ${venue.name}` : 'Tambah Klien / Venue Baru'}
           </h3>
@@ -99,7 +99,7 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 w-full px-3 py-2 border rounded-xl"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
                 placeholder="Kopi Senja"
               />
             </div>
@@ -110,7 +110,7 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
                 type="text"
                 value={formData.slug}
                 onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                className="mt-1 w-full px-3 py-2 border rounded-xl font-mono"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-mono focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
                 placeholder="kopi-senja"
               />
             </div>
@@ -123,7 +123,7 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
               type="url"
               value={formData.google_review_url}
               onChange={(e) => setFormData({ ...formData, google_review_url: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border rounded-xl font-mono text-xs"
+              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-mono text-xs focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
               placeholder="https://search.google.com/local/writereview?placeid=..."
             />
           </div>
@@ -134,7 +134,7 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
               <select
                 value={formData.redirect_mode}
                 onChange={(e) => setFormData({ ...formData, redirect_mode: e.target.value as any })}
-                className="mt-1 w-full px-3 py-2 border rounded-xl bg-white"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl bg-white focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
               >
                 <option value="smart_funnel">Smart Funnel (1-5 Star)</option>
                 <option value="direct_google">Direct Google (1-Click Bypass)</option>
@@ -145,7 +145,7 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
               <select
                 value={formData.feedback_channels}
                 onChange={(e) => setFormData({ ...formData, feedback_channels: e.target.value as any })}
-                className="mt-1 w-full px-3 py-2 border rounded-xl bg-white"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl bg-white focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
               >
                 <option value="whatsapp">WhatsApp Manager Chat</option>
                 <option value="email">Email / Inbox Saja</option>
@@ -161,7 +161,7 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
                 type="text"
                 value={formData.whatsapp_number}
                 onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
-                className="mt-1 w-full px-3 py-2 border rounded-xl font-mono"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-mono focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
                 placeholder="628123456789"
               />
             </div>
@@ -173,19 +173,19 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
                 maxLength={6}
                 value={formData.owner_access_pin}
                 onChange={(e) => setFormData({ ...formData, owner_access_pin: e.target.value })}
-                className="mt-1 w-full px-3 py-2 border rounded-xl font-mono text-center tracking-wider"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-mono text-center tracking-wider focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
                 placeholder="1234"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
             <div>
               <label className="block text-xs font-semibold text-slate-600">Sales Agent Attribution</label>
               <select
                 value={formData.sales_id}
                 onChange={(e) => setFormData({ ...formData, sales_id: e.target.value })}
-                className="mt-1 w-full px-3 py-2 border rounded-xl bg-white"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl bg-white focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
               >
                 <option value="">-- Pilih Sales Agent --</option>
                 {salesAgents.map((a) => (
@@ -201,26 +201,26 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
                 type="number"
                 value={formData.deal_amount}
                 onChange={(e) => setFormData({ ...formData, deal_amount: Number(e.target.value) })}
-                className="mt-1 w-full px-3 py-2 border rounded-xl"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
                 placeholder="599000"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.is_active}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="w-4 h-4 rounded text-[#00c48c] focus:ring-[#00c48c]"
+                className="w-4 h-4 rounded text-[#84cc16] focus:ring-[#84cc16]"
               />
               <span className="text-xs font-medium text-slate-700">Status Stand Akrilik Aktif</span>
             </label>
 
             <button
               type="submit"
-              className="px-5 py-2.5 bg-[#00c48c] hover:bg-[#00a877] text-slate-950 font-bold rounded-xl flex items-center gap-2 shadow-md shadow-emerald-500/20 active:scale-95 transition"
+              className="px-5 py-2.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white font-bold rounded-xl flex items-center gap-2 shadow-md shadow-emerald-500/20 active:scale-95 transition"
             >
               {venue ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               {venue ? 'Simpan Perubahan' : 'Buat Venue'}

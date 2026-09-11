@@ -61,7 +61,7 @@ export function FunnelRating({ venue }: FunnelRatingProps) {
             className="w-20 h-20 rounded-3xl object-cover shadow-xl border-2 border-white mb-4"
           />
         ) : (
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#00c48c] via-[#10b981] to-[#44ebcf] text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-emerald-500/25 mb-4">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#84cc16] via-[#10b981] to-[#06b6d4] text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-lime-500/20 mb-4">
             {venue.name.charAt(0)}
           </div>
         )}
@@ -72,7 +72,7 @@ export function FunnelRating({ venue }: FunnelRatingProps) {
       </div>
 
       {/* Interactive Stars */}
-      <div className="mt-8 bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100">
+      <div className="mt-8 bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/60 border border-slate-100">
         <div className="flex justify-center items-center gap-2 sm:gap-3 py-2">
           {[1, 2, 3, 4, 5].map((star) => {
             const isFilled = (hoverRating || selectedRating || 0) >= star;
@@ -102,9 +102,9 @@ export function FunnelRating({ venue }: FunnelRatingProps) {
 
       {/* 4-5 Stars Thank You Micro-Modal */}
       {isRedirecting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-8 max-w-xs w-full text-center shadow-2xl border border-emerald-100">
-            <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#00c48c]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-xs w-full text-center shadow-2xl border border-slate-100">
+            <div className="w-14 h-14 bg-gradient-to-br from-lime-50 to-cyan-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#10b981] border border-emerald-200/60 shadow-sm">
               <Sparkles className="w-8 h-8 animate-spin" />
             </div>
             <h3 className="text-xl font-bold text-slate-900">Luar Biasa!</h3>
