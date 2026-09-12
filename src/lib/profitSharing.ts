@@ -112,3 +112,73 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
     platform_net_income,
   };
 }
+
+export interface VenueSettlementSummary {
+  reimburse_marketing: number;
+  reimburse_status: 'unpaid' | 'paid' | 'not_applicable';
+  profit_share_marketing: number; // marketing_transport + marketing_final_share
+  profit_share_status: 'unpaid' | 'paid';
+
+  // Outstanding (unpaid) amounts owed to marketing specialist
+  unpaid_reimburse_marketing: number;
+  unpaid_profit_share_marketing: number;
+  total_unpaid_marketing: number;
+
+  // Paid (disbursed) amounts
+  paid_reimburse_marketing: number;
+  paid_profit_share_marketing: number;
+  total_paid_marketing: number;
+}
+
+export function calculateVenueSettlement(venue: {
+  deal_amount: number;
+  hpp: number;
+  hpp_payer?: HppPayerType;
+  hpp_marketing_ratio?: number;
+  transport_fee?: number;
+  hpp_reimburse_status?: 'unpaid' | 'paid' | 'not_applicable';
+  profit_share_status?: 'unpaid' | 'paid' | 'not_applicable';
+}): VenueSettlementSummary {
+  const dist = calculateProfitDistribution({
+    deal_amount: venue.deal_amount,
+    hpp: venue.hpp,
+    hpp_payer: venue.hpp_payer,
+    hpp_marketing_ratio: venue.hpp_marketing_ratio,
+    transport_fee: venue.transport_fee,
+  });
+
+  const reimburse_marketing = dist.reimburse_marketing;
+  const profit_share_marketing = dist.marketing_transport + dist.marketing_final_share;
+
+  // Determine reimburse status
+  let reimburse_status: 'unpaid' | 'paid' | 'not_applicable' = venue.hpp_reimburse_status || 'unpaid';
+  if (reimburse_marketing === 0) {
+    reimburse_status = 'not_applicable';
+  }
+
+  const profit_share_status: 'unpaid' | 'paid' = venue.profit_share_status === 'paid' ? 'paid' : 'unpaid';
+
+  const isReimbursePaid = reimburse_status === 'paid' || reimburse_status === 'not_applicable';
+  const isProfitSharePaid = profit_share_status === 'paid';
+
+  const unpaid_reimburse_marketing = isReimbursePaid ? 0 : reimburse_marketing;
+  const unpaid_profit_share_marketing = isProfitSharePaid ? 0 : profit_share_marketing;
+  const total_unpaid_marketing = unpaid_reimburse_marketing + unpaid_profit_share_marketing;
+
+  const paid_reimburse_marketing = reimburse_status === 'paid' ? reimburse_marketing : 0;
+  const paid_profit_share_marketing = isProfitSharePaid ? profit_share_marketing : 0;
+  const total_paid_marketing = paid_reimburse_marketing + paid_profit_share_marketing;
+
+  return {
+    reimburse_marketing,
+    reimburse_status,
+    profit_share_marketing,
+    profit_share_status,
+    unpaid_reimburse_marketing,
+    unpaid_profit_share_marketing,
+    total_unpaid_marketing,
+    paid_reimburse_marketing,
+    paid_profit_share_marketing,
+    total_paid_marketing,
+  };
+}

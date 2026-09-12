@@ -48,6 +48,8 @@ class InMemoryStore {
       hpp_payer: 'marketing',
       hpp_marketing_ratio: 100,
       transport_fee: 20000,
+      hpp_reimburse_status: 'unpaid',
+      profit_share_status: 'unpaid',
       monthly_retainer_fee: 49000,
       deal_date: new Date().toISOString().split('T')[0],
       billing_type: 'subscription',
@@ -98,6 +100,12 @@ class InMemoryStore {
       hpp_payer: data.hpp_payer || 'marketing',
       hpp_marketing_ratio: data.hpp_marketing_ratio !== undefined ? Number(data.hpp_marketing_ratio) : (data.hpp_payer === 'platform' ? 0 : (data.hpp_payer === 'split' ? 50 : 100)),
       transport_fee: data.transport_fee !== undefined ? Number(data.transport_fee) : 20000,
+      hpp_reimburse_status: data.hpp_reimburse_status || ((data.hpp_payer === 'platform' || data.hpp_marketing_ratio === 0) ? 'not_applicable' : 'unpaid'),
+      hpp_reimburse_paid_at: data.hpp_reimburse_paid_at,
+      hpp_reimburse_notes: data.hpp_reimburse_notes,
+      profit_share_status: data.profit_share_status || 'unpaid',
+      profit_share_paid_at: data.profit_share_paid_at,
+      profit_share_notes: data.profit_share_notes,
       monthly_retainer_fee: billing_type === 'one_time' ? 0 : data.monthly_retainer_fee,
       subscription_status: data.subscription_status || 'active',
       subscription_until:
@@ -361,6 +369,12 @@ class StoreRepository {
             hpp_payer: v.hpp_payer || 'marketing',
             hpp_marketing_ratio: v.hpp_marketing_ratio !== undefined && v.hpp_marketing_ratio !== null ? Number(v.hpp_marketing_ratio) : 100,
             transport_fee: v.transport_fee !== undefined && v.transport_fee !== null ? Number(v.transport_fee) : 20000,
+            hpp_reimburse_status: v.hpp_reimburse_status || ((v.hpp_payer === 'platform' || v.hpp_marketing_ratio === 0) ? 'not_applicable' : 'unpaid'),
+            hpp_reimburse_paid_at: v.hpp_reimburse_paid_at,
+            hpp_reimburse_notes: v.hpp_reimburse_notes,
+            profit_share_status: v.profit_share_status || 'unpaid',
+            profit_share_paid_at: v.profit_share_paid_at,
+            profit_share_notes: v.profit_share_notes,
           })) as Venue[];
         }
       } catch (err) {
@@ -384,13 +398,22 @@ class StoreRepository {
           : undefined),
     };
 
+    const cleanHppPayer = payload.hpp_payer || 'marketing';
+    const cleanHppRatio = payload.hpp_marketing_ratio !== undefined ? Number(payload.hpp_marketing_ratio) : (cleanHppPayer === 'platform' ? 0 : (cleanHppPayer === 'split' ? 50 : 100));
+
     const sanitizedPayload = {
       ...payload,
       deal_amount: Number(payload.deal_amount) || 0,
       hpp: payload.hpp !== undefined ? Number(payload.hpp) : 150000,
-      hpp_payer: payload.hpp_payer || 'marketing',
-      hpp_marketing_ratio: payload.hpp_marketing_ratio !== undefined ? Number(payload.hpp_marketing_ratio) : (payload.hpp_payer === 'platform' ? 0 : (payload.hpp_payer === 'split' ? 50 : 100)),
+      hpp_payer: cleanHppPayer,
+      hpp_marketing_ratio: cleanHppRatio,
       transport_fee: payload.transport_fee !== undefined ? Number(payload.transport_fee) : 20000,
+      hpp_reimburse_status: payload.hpp_reimburse_status || (cleanHppRatio === 0 || cleanHppPayer === 'platform' ? 'not_applicable' : 'unpaid'),
+      hpp_reimburse_paid_at: payload.hpp_reimburse_paid_at,
+      hpp_reimburse_notes: payload.hpp_reimburse_notes,
+      profit_share_status: payload.profit_share_status || 'unpaid',
+      profit_share_paid_at: payload.profit_share_paid_at,
+      profit_share_notes: payload.profit_share_notes,
       sales_id: payload.sales_id && String(payload.sales_id).trim() !== '' ? String(payload.sales_id).trim() : null,
       deal_date: payload.deal_date || new Date().toISOString().split('T')[0],
     };
@@ -405,7 +428,22 @@ class StoreRepository {
           .single();
 
         if (error && error.code === 'PGRST204') {
-          const { billing_type, subscription_status, subscription_until, hpp, hpp_payer, hpp_marketing_ratio, transport_fee, ...compatiblePayload } = sanitizedPayload;
+          const {
+            billing_type,
+            subscription_status,
+            subscription_until,
+            hpp,
+            hpp_payer,
+            hpp_marketing_ratio,
+            transport_fee,
+            hpp_reimburse_status,
+            hpp_reimburse_paid_at,
+            hpp_reimburse_notes,
+            profit_share_status,
+            profit_share_paid_at,
+            profit_share_notes,
+            ...compatiblePayload
+          } = sanitizedPayload;
           const retry = await client
             .from('venues')
             .insert([compatiblePayload])
@@ -454,6 +492,24 @@ class StoreRepository {
     if ('transport_fee' in updates) {
       sanitizedUpdates.transport_fee = Number(updates.transport_fee);
     }
+    if ('hpp_reimburse_status' in updates) {
+      sanitizedUpdates.hpp_reimburse_status = updates.hpp_reimburse_status;
+    }
+    if ('hpp_reimburse_paid_at' in updates) {
+      sanitizedUpdates.hpp_reimburse_paid_at = updates.hpp_reimburse_paid_at;
+    }
+    if ('hpp_reimburse_notes' in updates) {
+      sanitizedUpdates.hpp_reimburse_notes = updates.hpp_reimburse_notes;
+    }
+    if ('profit_share_status' in updates) {
+      sanitizedUpdates.profit_share_status = updates.profit_share_status;
+    }
+    if ('profit_share_paid_at' in updates) {
+      sanitizedUpdates.profit_share_paid_at = updates.profit_share_paid_at;
+    }
+    if ('profit_share_notes' in updates) {
+      sanitizedUpdates.profit_share_notes = updates.profit_share_notes;
+    }
     if ('sales_id' in updates) {
       sanitizedUpdates.sales_id = updates.sales_id && String(updates.sales_id).trim() !== '' ? String(updates.sales_id).trim() : null;
     }
@@ -469,7 +525,22 @@ class StoreRepository {
           .single();
 
         if (error && error.code === 'PGRST204') {
-          const { billing_type, subscription_status, subscription_until, hpp, hpp_payer, hpp_marketing_ratio, transport_fee, ...compatibleUpdates } = sanitizedUpdates;
+          const {
+            billing_type,
+            subscription_status,
+            subscription_until,
+            hpp,
+            hpp_payer,
+            hpp_marketing_ratio,
+            transport_fee,
+            hpp_reimburse_status,
+            hpp_reimburse_paid_at,
+            hpp_reimburse_notes,
+            profit_share_status,
+            profit_share_paid_at,
+            profit_share_notes,
+            ...compatibleUpdates
+          } = sanitizedUpdates;
           const retry = await client
             .from('venues')
             .update(compatibleUpdates)

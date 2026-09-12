@@ -32,6 +32,7 @@ export type SubscriptionStatus = 'active' | 'pending_verification' | 'expired';
 export type PaymentStatus = 'pending' | 'approved' | 'rejected';
 export type BillingType = 'one_time' | 'subscription';
 export type HppPayerType = 'marketing' | 'platform' | 'split';
+export type SettlementStatus = 'unpaid' | 'paid' | 'not_applicable';
 
 export interface Venue {
   id: string;
@@ -53,6 +54,13 @@ export interface Venue {
   hpp_payer?: HppPayerType; // Penanggung HPP: 'marketing' | 'platform' | 'split'
   hpp_marketing_ratio?: number; // Persentase HPP ditanggung marketing (0-100)
   transport_fee?: number; // Flat uang transportasi marketing specialist (default 20.000)
+  // Settlement Tracking (Opsi B)
+  hpp_reimburse_status?: SettlementStatus; // 'unpaid' | 'paid' | 'not_applicable'
+  hpp_reimburse_paid_at?: string;
+  hpp_reimburse_notes?: string;
+  profit_share_status?: SettlementStatus; // 'unpaid' | 'paid'
+  profit_share_paid_at?: string;
+  profit_share_notes?: string;
   monthly_retainer_fee: number;
   deal_date: string;
   billing_type?: BillingType;
