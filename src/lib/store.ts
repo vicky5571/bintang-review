@@ -10,6 +10,7 @@ import {
   PaymentConfirmation,
 } from './types';
 import { supabase, supabaseAdmin, isSupabaseConfigured } from './supabase/client';
+import { calculateProfitDistribution } from './profitSharing';
 
 // In-Memory Data Store fallback
 class InMemoryStore {
@@ -44,6 +45,9 @@ class InMemoryStore {
       sales_id: '00000000-0000-0000-0000-000000000001',
       deal_amount: 599000,
       hpp: 150000,
+      hpp_payer: 'marketing',
+      hpp_marketing_ratio: 100,
+      transport_fee: 20000,
       monthly_retainer_fee: 49000,
       deal_date: new Date().toISOString().split('T')[0],
       billing_type: 'subscription',
@@ -91,6 +95,9 @@ class InMemoryStore {
       billing_type,
       deal_amount: data.deal_amount !== undefined ? Number(data.deal_amount) : 599000,
       hpp: data.hpp !== undefined ? Number(data.hpp) : 150000,
+      hpp_payer: data.hpp_payer || 'marketing',
+      hpp_marketing_ratio: data.hpp_marketing_ratio !== undefined ? Number(data.hpp_marketing_ratio) : (data.hpp_payer === 'platform' ? 0 : (data.hpp_payer === 'split' ? 50 : 100)),
+      transport_fee: data.transport_fee !== undefined ? Number(data.transport_fee) : 20000,
       monthly_retainer_fee: billing_type === 'one_time' ? 0 : data.monthly_retainer_fee,
       subscription_status: data.subscription_status || 'active',
       subscription_until:
@@ -177,10 +184,16 @@ class InMemoryStore {
       );
       const total_venues = specialistVenues.length;
       const total_revenue = specialistVenues.reduce((sum, v) => sum + (Number(v.deal_amount) || 0), 0);
-      const earned_commission =
-        specialist.commission_type === 'percentage'
-          ? (total_revenue * specialist.commission_rate) / 100
-          : total_venues * specialist.commission_rate;
+      const earned_commission = specialistVenues.reduce((sum, v) => {
+        const dist = calculateProfitDistribution({
+          deal_amount: v.deal_amount,
+          hpp: v.hpp,
+          hpp_payer: v.hpp_payer,
+          hpp_marketing_ratio: v.hpp_marketing_ratio,
+          transport_fee: v.transport_fee,
+        });
+        return sum + dist.marketing_total_payout;
+      }, 0);
 
       return {
         ...specialist,
@@ -345,6 +358,9 @@ class StoreRepository {
           return data.map((v: any) => ({
             ...v,
             hpp: v.hpp !== undefined && v.hpp !== null ? Number(v.hpp) : 150000,
+            hpp_payer: v.hpp_payer || 'marketing',
+            hpp_marketing_ratio: v.hpp_marketing_ratio !== undefined && v.hpp_marketing_ratio !== null ? Number(v.hpp_marketing_ratio) : 100,
+            transport_fee: v.transport_fee !== undefined && v.transport_fee !== null ? Number(v.transport_fee) : 20000,
           })) as Venue[];
         }
       } catch (err) {
@@ -372,6 +388,9 @@ class StoreRepository {
       ...payload,
       deal_amount: Number(payload.deal_amount) || 0,
       hpp: payload.hpp !== undefined ? Number(payload.hpp) : 150000,
+      hpp_payer: payload.hpp_payer || 'marketing',
+      hpp_marketing_ratio: payload.hpp_marketing_ratio !== undefined ? Number(payload.hpp_marketing_ratio) : (payload.hpp_payer === 'platform' ? 0 : (payload.hpp_payer === 'split' ? 50 : 100)),
+      transport_fee: payload.transport_fee !== undefined ? Number(payload.transport_fee) : 20000,
       sales_id: payload.sales_id && String(payload.sales_id).trim() !== '' ? String(payload.sales_id).trim() : null,
       deal_date: payload.deal_date || new Date().toISOString().split('T')[0],
     };
@@ -386,7 +405,7 @@ class StoreRepository {
           .single();
 
         if (error && error.code === 'PGRST204') {
-          const { billing_type, subscription_status, subscription_until, hpp, ...compatiblePayload } = sanitizedPayload;
+          const { billing_type, subscription_status, subscription_until, hpp, hpp_payer, hpp_marketing_ratio, transport_fee, ...compatiblePayload } = sanitizedPayload;
           const retry = await client
             .from('venues')
             .insert([compatiblePayload])
@@ -396,10 +415,7 @@ class StoreRepository {
           if (!retry.error && retry.data) {
             return {
               ...retry.data,
-              billing_type: sanitizedPayload.billing_type,
-              subscription_status: sanitizedPayload.subscription_status,
-              subscription_until: sanitizedPayload.subscription_until,
-              hpp: sanitizedPayload.hpp,
+              ...sanitizedPayload,
             } as Venue;
           }
         }
@@ -407,7 +423,7 @@ class StoreRepository {
         if (!error && created) {
           return {
             ...created,
-            hpp: sanitizedPayload.hpp,
+            ...sanitizedPayload,
           } as Venue;
         }
         if (error) console.warn('Supabase createVenue error:', error);
@@ -429,6 +445,15 @@ class StoreRepository {
     if ('hpp' in updates) {
       sanitizedUpdates.hpp = Number(updates.hpp) || 0;
     }
+    if ('hpp_payer' in updates) {
+      sanitizedUpdates.hpp_payer = updates.hpp_payer;
+    }
+    if ('hpp_marketing_ratio' in updates) {
+      sanitizedUpdates.hpp_marketing_ratio = Number(updates.hpp_marketing_ratio);
+    }
+    if ('transport_fee' in updates) {
+      sanitizedUpdates.transport_fee = Number(updates.transport_fee);
+    }
     if ('sales_id' in updates) {
       sanitizedUpdates.sales_id = updates.sales_id && String(updates.sales_id).trim() !== '' ? String(updates.sales_id).trim() : null;
     }
@@ -444,7 +469,7 @@ class StoreRepository {
           .single();
 
         if (error && error.code === 'PGRST204') {
-          const { billing_type, subscription_status, subscription_until, hpp, ...compatibleUpdates } = sanitizedUpdates;
+          const { billing_type, subscription_status, subscription_until, hpp, hpp_payer, hpp_marketing_ratio, transport_fee, ...compatibleUpdates } = sanitizedUpdates;
           const retry = await client
             .from('venues')
             .update(compatibleUpdates)
@@ -463,7 +488,7 @@ class StoreRepository {
         if (!error && updated) {
           return {
             ...updated,
-            hpp: sanitizedUpdates.hpp !== undefined ? sanitizedUpdates.hpp : 150000,
+            ...sanitizedUpdates,
           } as Venue;
         }
         if (error) console.warn('Supabase updateVenue error:', error);
@@ -566,17 +591,23 @@ class StoreRepository {
     if (isSupabaseConfigured && client) {
       try {
         const { data: agents } = await client.from('sales_agents').select('*');
-        const { data: allVenues } = await client.from('venues').select('sales_id, deal_amount');
+        const { data: allVenues } = await client.from('venues').select('sales_id, deal_amount, hpp, hpp_payer, hpp_marketing_ratio, transport_fee');
 
         if (agents && agents.length > 0) {
           return agents.map((agent: any) => {
             const agentVenues = (allVenues || []).filter((v: any) => v.sales_id === agent.id);
             const total_venues = agentVenues.length;
             const total_revenue = agentVenues.reduce((sum: number, v: any) => sum + (Number(v.deal_amount) || 0), 0);
-            const earned_commission =
-              agent.commission_type === 'percentage'
-                ? (total_revenue * Number(agent.commission_rate)) / 100
-                : total_venues * Number(agent.commission_rate);
+            const earned_commission = agentVenues.reduce((sum: number, v: any) => {
+              const dist = calculateProfitDistribution({
+                deal_amount: v.deal_amount,
+                hpp: v.hpp,
+                hpp_payer: v.hpp_payer,
+                hpp_marketing_ratio: v.hpp_marketing_ratio,
+                transport_fee: v.transport_fee,
+              });
+              return sum + dist.marketing_total_payout;
+            }, 0);
 
             return {
               ...agent,

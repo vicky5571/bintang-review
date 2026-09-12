@@ -47,6 +47,9 @@ export async function POST(request: Request) {
       deal_amount,
       selling_price,
       hpp,
+      hpp_payer,
+      hpp_marketing_ratio,
+      transport_fee,
       billing_type,
       monthly_retainer_fee,
     } = body;
@@ -72,6 +75,12 @@ export async function POST(request: Request) {
     const cleanRetainer = cleanBillingType === 'one_time' ? 0 : Number(monthly_retainer_fee || 0);
     const cleanDealAmount = Number(selling_price !== undefined ? selling_price : deal_amount) || 0;
     const cleanHpp = hpp !== undefined ? Number(hpp) : 150000;
+    const cleanHppPayer = ['marketing', 'platform', 'split'].includes(hpp_payer) ? hpp_payer : 'marketing';
+    const cleanHppMarketingRatio =
+      hpp_marketing_ratio !== undefined
+        ? Math.min(100, Math.max(0, Number(hpp_marketing_ratio)))
+        : (cleanHppPayer === 'platform' ? 0 : (cleanHppPayer === 'split' ? 50 : 100));
+    const cleanTransportFee = transport_fee !== undefined ? Math.max(0, Number(transport_fee)) : 20000;
 
     const payload: any = {
       name: name.trim(),
@@ -86,6 +95,9 @@ export async function POST(request: Request) {
       marketing_id: assignedSpecialistId,
       deal_amount: cleanDealAmount,
       hpp: cleanHpp,
+      hpp_payer: cleanHppPayer,
+      hpp_marketing_ratio: cleanHppMarketingRatio,
+      transport_fee: cleanTransportFee,
       billing_type: cleanBillingType,
       monthly_retainer_fee: cleanRetainer,
       deal_date: new Date().toISOString().split('T')[0],

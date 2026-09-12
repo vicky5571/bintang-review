@@ -31,6 +31,7 @@ export type SalesAgent = MarketingSpecialist;
 export type SubscriptionStatus = 'active' | 'pending_verification' | 'expired';
 export type PaymentStatus = 'pending' | 'approved' | 'rejected';
 export type BillingType = 'one_time' | 'subscription';
+export type HppPayerType = 'marketing' | 'platform' | 'split';
 
 export interface Venue {
   id: string;
@@ -49,6 +50,9 @@ export interface Venue {
   deal_amount: number; // Harga Jual ke Klien
   selling_price?: number; // Alias Harga Jual
   hpp: number; // Harga Pokok Penjualan / Modal per unit stand akrilik & setup
+  hpp_payer?: HppPayerType; // Penanggung HPP: 'marketing' | 'platform' | 'split'
+  hpp_marketing_ratio?: number; // Persentase HPP ditanggung marketing (0-100)
+  transport_fee?: number; // Flat uang transportasi marketing specialist (default 20.000)
   monthly_retainer_fee: number;
   deal_date: string;
   billing_type?: BillingType;

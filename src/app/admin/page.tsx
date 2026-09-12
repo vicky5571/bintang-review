@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Venue, MarketingSpecialist, MarketingSpecialistSummary, PaymentConfirmation, AuthSession } from '@/lib/types';
-import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock, UserPlus, Briefcase, Award, TrendingUp, Receipt, PiggyBank } from 'lucide-react';
+import { calculateProfitDistribution } from '@/lib/profitSharing';
+import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock, UserPlus, Briefcase, Award, TrendingUp, Receipt, PiggyBank, Car, Building2, Percent } from 'lucide-react';
 import { AdminVenueModal } from '@/components/AdminVenueModal';
 import { AdminMarketingModal } from '@/components/AdminMarketingModal';
 import { QrGeneratorModal } from '@/components/QrGeneratorModal';
@@ -45,24 +46,21 @@ export default function AdminPage() {
         setPayments(dP.payments || []);
       }
     } catch (err) {
-      console.warn('API fetch error during admin load:', err);
+      console.error('Failed to load admin data:', err);
     }
   };
 
   const checkAuth = async () => {
     try {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/admin/auth');
       const data = await res.json();
-      if (data.authenticated && data.user) {
-        setIsAuthenticated(true);
-        setCurrentUser(data.user);
-        await loadData(data.user);
-      } else {
-        setIsAuthenticated(false);
-        setCurrentUser(null);
+      setIsAuthenticated(data.authenticated);
+      if (data.authenticated) {
+        setCurrentUser(data);
+        loadData(data);
       }
     } catch (err) {
-      console.error('Failed to check auth:', err);
+      console.error('Error verifying auth:', err);
       setIsAuthenticated(false);
     } finally {
       setAuthLoading(false);
@@ -74,79 +72,72 @@ export default function AdminPage() {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/me', { method: 'POST' });
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
+    await fetch('/api/admin/auth', { method: 'DELETE' });
     setIsAuthenticated(false);
     setCurrentUser(null);
   };
 
-  const handleSaveVenue = async (formData: Partial<Venue>) => {
+  const handleSaveVenue = async (venueData: Partial<Venue>) => {
     try {
       const res = await fetch('/api/admin/venues', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          id: selectedVenueForEdit?.id,
-        }),
+        body: JSON.stringify(venueData),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+      if (data.success) {
+        setIsModalOpen(false);
+        loadData();
+      } else {
         alert(data.error || 'Gagal menyimpan venue');
-        return;
       }
     } catch (err) {
-      console.error('Error saving venue via API:', err);
-      alert('Terjadi kendala jaringan saat menyimpan venue.');
+      console.error('Save venue error:', err);
+      alert('Terjadi kesalahan saat menyimpan venue.');
     }
-
-    setIsModalOpen(false);
-    setSelectedVenueForEdit(null);
-    await loadData(currentUser);
   };
 
-  const handleVerifyPayment = async (id: string, status: 'approved' | 'rejected') => {
-    try {
-      await fetch('/api/admin/payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status, notes: 'Diverifikasi oleh Super Admin' }),
-      });
-    } catch (err) {
-      console.error('Error verifying payment via API:', err);
-    }
-    await loadData(currentUser);
-  };
-
-  const handleSaveMarketingSpecialist = async (formData: Omit<MarketingSpecialist, 'id' | 'created_at'>) => {
+  const handleSaveMarketingSpecialist = async (marketingData: Partial<MarketingSpecialist>) => {
     try {
       const res = await fetch('/api/admin/marketing-specialists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(marketingData),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || 'Gagal menyimpan data Marketing Specialist');
-        return;
+      const data = await res.json();
+      if (data.success) {
+        setIsMarketingModalOpen(false);
+        loadData();
+      } else {
+        alert(data.error || 'Gagal menyimpan data marketing specialist');
       }
     } catch (err) {
-      console.error('Error saving Marketing Specialist via API:', err);
-      alert('Terjadi kesalahan jaringan.');
+      console.error('Save marketing error:', err);
+      alert('Terjadi kesalahan saat menyimpan data marketing specialist.');
     }
+  };
 
-    setIsMarketingModalOpen(false);
-    await loadData(currentUser);
+  const handleVerifyPayment = async (id: string, status: 'approved' | 'rejected', notes?: string) => {
+    try {
+      const res = await fetch('/api/admin/payment', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, notes }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadData();
+      } else {
+        alert(data.error || 'Gagal memperbarui status verifikasi.');
+      }
+    } catch (err) {
+      console.error('Verify payment error:', err);
+    }
   };
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-medium text-sm">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-medium text-sm">
         Memverifikasi sesi role akses...
       </div>
     );
@@ -170,12 +161,23 @@ export default function AdminPage() {
     ? marketingSpecialists.find((m) => m.id === currentUser?.specialist_id)
     : null;
 
-  // Super Admin Financial Metrics (Harga Jual, HPP, Margin Kotor, Net)
+  // Calculate profit sharing distributions across all loaded venues
+  const venueDistributions = venues.map((v) =>
+    calculateProfitDistribution({
+      deal_amount: v.deal_amount,
+      hpp: v.hpp,
+      hpp_payer: v.hpp_payer,
+      hpp_marketing_ratio: v.hpp_marketing_ratio,
+      transport_fee: v.transport_fee,
+    })
+  );
+
+  // Super Admin Financial Metrics (Harga Jual, HPP, Margin Kotor, Payouts)
   const totalRevenue = venues.reduce((acc, v) => acc + (Number(v.deal_amount) || 0), 0);
   const totalHpp = venues.reduce((acc, v) => acc + (Number(v.hpp !== undefined && v.hpp !== null ? v.hpp : 150000)), 0);
   const totalGrossProfit = totalRevenue - totalHpp;
-  const totalCommission = marketingSpecialists.reduce((acc, m) => acc + (Number(m.earned_commission) || 0), 0);
-  const netEstimatedProfit = totalGrossProfit - totalCommission;
+  const totalMarketingPayout = venueDistributions.reduce((acc, d) => acc + d.marketing_total_payout, 0);
+  const totalPlatformPayout = venueDistributions.reduce((acc, d) => acc + d.platform_total_payout, 0);
 
   return (
     <div className="min-h-screen bg-slate-50/70 pb-16">
@@ -263,33 +265,33 @@ export default function AdminPage() {
               <p className="text-[10px] text-slate-400 mt-1">Biaya material & akrilik</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-emerald-200/80 shadow-sm bg-gradient-to-br from-emerald-50/30 to-white">
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-lime-200/80 shadow-sm bg-gradient-to-br from-lime-50/40 to-white">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-emerald-800">Laba Kotor (Gross Profit)</span>
-                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4" />
+                <span className="text-[11px] font-semibold text-lime-800">Total Payout Marketing</span>
+                <div className="w-7 h-7 rounded-lg bg-lime-100 text-[#84cc16] flex items-center justify-center">
+                  <Briefcase className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-lg sm:text-xl font-black text-emerald-700">
-                Rp {totalGrossProfit.toLocaleString('id-ID')}
+              <div className="text-lg sm:text-xl font-black text-slate-900">
+                Rp {totalMarketingPayout.toLocaleString('id-ID')}
               </div>
-              <p className="text-[10px] text-emerald-600/80 mt-1">
-                Margin {totalRevenue > 0 ? Math.round((totalGrossProfit / totalRevenue) * 100) : 0}%
+              <p className="text-[10px] text-slate-500 mt-1">
+                Reimburse HPP, transport & bagi profit
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-purple-200/80 shadow-sm bg-gradient-to-br from-purple-50/30 to-white">
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-cyan-200/80 shadow-sm bg-gradient-to-br from-cyan-50/40 to-white">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-purple-800">Estimasi Laba Bersih</span>
-                <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                <span className="text-[11px] font-semibold text-cyan-800">Net Pendapatan Platform</span>
+                <div className="w-7 h-7 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center">
                   <PiggyBank className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-lg sm:text-xl font-black text-purple-800">
-                Rp {netEstimatedProfit.toLocaleString('id-ID')}
+              <div className="text-lg sm:text-xl font-black text-cyan-800">
+                Rp {totalPlatformPayout.toLocaleString('id-ID')}
               </div>
-              <p className="text-[10px] text-purple-600/80 mt-1">
-                Setelah komisi marketing
+              <p className="text-[10px] text-cyan-600/80 mt-1">
+                Fee 10% + porsi profit platform
               </p>
             </div>
           </section>
@@ -328,9 +330,9 @@ export default function AdminPage() {
                 <Award className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs text-emerald-800 font-medium">Komisi Berhak Diterima</p>
+                <p className="text-xs text-emerald-800 font-medium">Total Payout Berhak Diterima</p>
                 <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
-                  Rp {(currentSpecialistSummary?.earned_commission ?? 0).toLocaleString('id-ID')}
+                  Rp {totalMarketingPayout.toLocaleString('id-ID')}
                 </h3>
               </div>
             </div>
@@ -357,6 +359,7 @@ export default function AdminPage() {
                   <th className="px-6 py-3.5">Mode</th>
                   <th className="px-6 py-3.5">Paket</th>
                   <th className="px-6 py-3.5">Harga Jual {isSuperAdmin ? '& HPP' : ''}</th>
+                  <th className="px-6 py-3.5">Bagi Hasil & Payout</th>
                   <th className="px-6 py-3.5">PIN Owner</th>
                   <th className="px-6 py-3.5">Status</th>
                   <th className="px-6 py-3.5 text-right">Aksi</th>
@@ -365,7 +368,7 @@ export default function AdminPage() {
               <tbody className="divide-y divide-slate-100">
                 {venues.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center text-slate-400">
+                    <td colSpan={9} className="px-6 py-10 text-center text-slate-400">
                       Belum ada klien kafe terdaftar. Klik <strong>Tambah Klien Venue</strong> untuk mendaftarkan kafe baru.
                     </td>
                   </tr>
@@ -374,6 +377,13 @@ export default function AdminPage() {
                     const price = v.deal_amount || 0;
                     const cogs = v.hpp !== undefined && v.hpp !== null ? v.hpp : 150000;
                     const margin = price - cogs;
+                    const dist = calculateProfitDistribution({
+                      deal_amount: v.deal_amount,
+                      hpp: v.hpp,
+                      hpp_payer: v.hpp_payer,
+                      hpp_marketing_ratio: v.hpp_marketing_ratio,
+                      transport_fee: v.transport_fee,
+                    });
                     return (
                       <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="px-6 py-4 font-bold text-slate-900">{v.name}</td>
@@ -420,6 +430,23 @@ export default function AdminPage() {
                           ) : (
                             <span className="text-[10px] text-slate-400 block font-normal">Harga Jual Unit</span>
                           )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="font-medium text-slate-500">Mktg:</span>
+                              <strong className="font-bold text-slate-900">Rp {dist.marketing_total_payout.toLocaleString('id-ID')}</strong>
+                            </div>
+                            {isSuperAdmin && (
+                              <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                                <span>Platf:</span>
+                                <strong className="font-semibold text-cyan-700">Rp {dist.platform_total_payout.toLocaleString('id-ID')}</strong>
+                              </div>
+                            )}
+                            <div className="text-[10px] text-slate-400">
+                              {v.hpp_payer === 'platform' ? 'HPP: Platf (100%)' : (v.hpp_payer === 'split' ? `HPP: Split (${v.hpp_marketing_ratio || 50}%)` : 'HPP: Mktg (100%)')}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 font-mono font-bold text-slate-600">{v.owner_access_pin}</td>
                         <td className="px-6 py-4">

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Venue, MarketingSpecialistSummary, RedirectMode, FeedbackChannel, BillingType, UserRole } from '@/lib/types';
-import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
+import { Venue, MarketingSpecialistSummary, RedirectMode, FeedbackChannel, BillingType, UserRole, HppPayerType } from '@/lib/types';
+import { calculateProfitDistribution } from '@/lib/profitSharing';
+import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent } from 'lucide-react';
 
 interface AdminVenueModalProps {
   venue: Venue | null;
@@ -37,6 +38,9 @@ export function AdminVenueModal({
     marketing_id: string;
     deal_amount: number;
     hpp: number;
+    hpp_payer: HppPayerType;
+    hpp_marketing_ratio: number;
+    transport_fee: number;
     billing_type: BillingType;
     monthly_retainer_fee: number;
   }>({
@@ -51,6 +55,9 @@ export function AdminVenueModal({
     marketing_id: '',
     deal_amount: 599000,
     hpp: 150000,
+    hpp_payer: 'marketing',
+    hpp_marketing_ratio: 100,
+    transport_fee: 20000,
     billing_type: 'subscription',
     monthly_retainer_fee: 149000,
   });
@@ -74,6 +81,9 @@ export function AdminVenueModal({
         marketing_id: isMarketingSpecialistRole ? (currentSpecialistId || '') : (venue.marketing_id || venue.sales_id || ''),
         deal_amount: venue.deal_amount !== undefined ? Number(venue.deal_amount) : 599000,
         hpp: venue.hpp !== undefined && venue.hpp !== null ? Number(venue.hpp) : 150000,
+        hpp_payer: venue.hpp_payer || 'marketing',
+        hpp_marketing_ratio: venue.hpp_marketing_ratio !== undefined ? Number(venue.hpp_marketing_ratio) : 100,
+        transport_fee: venue.transport_fee !== undefined ? Number(venue.transport_fee) : 20000,
         billing_type: isOneTime ? 'one_time' : 'subscription',
         monthly_retainer_fee: isOneTime ? 0 : (venue.monthly_retainer_fee || 149000),
       });
@@ -90,6 +100,9 @@ export function AdminVenueModal({
         marketing_id: defaultMarketingId,
         deal_amount: 599000,
         hpp: 150000,
+        hpp_payer: 'marketing',
+        hpp_marketing_ratio: 100,
+        transport_fee: 20000,
         billing_type: 'subscription',
         monthly_retainer_fee: 149000,
       });
@@ -107,6 +120,14 @@ export function AdminVenueModal({
   };
 
   const currentSpecialistObj = marketingSpecialists.find((m) => m.id === (currentSpecialistId || formData.marketing_id));
+
+  const profitDist = calculateProfitDistribution({
+    deal_amount: formData.deal_amount,
+    hpp: formData.hpp,
+    hpp_payer: formData.hpp_payer,
+    hpp_marketing_ratio: formData.hpp_marketing_ratio,
+    transport_fee: formData.transport_fee,
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
@@ -260,7 +281,7 @@ export function AdminVenueModal({
                   className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
                   placeholder="599000"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">Nominal yang ditagihkan ke klien kafe.</p>
+                <p className="text-[10px] text-slate-400 mt-1">Nilai total closing deal.</p>
               </div>
 
               <div>
@@ -280,16 +301,153 @@ export function AdminVenueModal({
               </div>
             </div>
 
-            {/* Live Profit Margin Preview */}
-            <div className="p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/80 flex items-center justify-between text-xs">
-              <span className="text-slate-600 font-medium">Estimasi Laba Kotor per Unit:</span>
-              <div className="text-right">
-                <span className={`font-black ${formData.deal_amount - formData.hpp >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  Rp {(formData.deal_amount - formData.hpp).toLocaleString('id-ID')}
+            {/* Skema Penanggung Modal HPP */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Penanggung Modal Awal HPP (Reimburse Pertama)
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, hpp_payer: 'marketing', hpp_marketing_ratio: 100 })}
+                  className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
+                    formData.hpp_payer === 'marketing'
+                      ? 'border-[#84cc16] bg-lime-50 text-slate-900 ring-1 ring-[#84cc16]'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Briefcase className="w-3.5 h-3.5 mb-1 text-[#84cc16]" />
+                  <span className="text-[11px] font-bold">Marketing (100%)</span>
+                  <span className="text-[9px] text-slate-400">Modal dari Specialist</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, hpp_payer: 'platform', hpp_marketing_ratio: 0 })}
+                  className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
+                    formData.hpp_payer === 'platform'
+                      ? 'border-cyan-500 bg-cyan-50 text-slate-900 ring-1 ring-cyan-500'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5 mb-1 text-cyan-600" />
+                  <span className="text-[11px] font-bold">Platform (100%)</span>
+                  <span className="text-[9px] text-slate-400">Modal dari Agency</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, hpp_payer: 'split', hpp_marketing_ratio: 50 })}
+                  className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
+                    formData.hpp_payer === 'split'
+                      ? 'border-indigo-500 bg-indigo-50 text-slate-900 ring-1 ring-indigo-500'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Percent className="w-3.5 h-3.5 mb-1 text-indigo-600" />
+                  <span className="text-[11px] font-bold">Split Bersama</span>
+                  <span className="text-[9px] text-slate-400">{formData.hpp_marketing_ratio}% : {100 - formData.hpp_marketing_ratio}%</span>
+                </button>
+              </div>
+
+              {formData.hpp_payer === 'split' && (
+                <div className="mt-2 p-2.5 bg-indigo-50/60 border border-indigo-100 rounded-xl flex items-center justify-between text-xs">
+                  <span className="text-slate-600 font-medium">Porsi HPP Marketing:</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={formData.hpp_marketing_ratio}
+                      onChange={(e) => setFormData({ ...formData, hpp_marketing_ratio: Number(e.target.value) })}
+                      className="w-28 accent-indigo-600 cursor-pointer"
+                    />
+                    <span className="font-bold font-mono text-indigo-700 w-12 text-right">
+                      {formData.hpp_marketing_ratio}%
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Flat Transport Fee Marketing */}
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Uang Transportasi Flat Marketing (Rp)
+                </label>
+                <span className="text-[10px] text-slate-400">Default Rp 20.000</span>
+              </div>
+              <div className="relative mt-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Car className="w-4 h-4" />
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.transport_fee}
+                  onChange={(e) => setFormData({ ...formData, transport_fee: Number(e.target.value) })}
+                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
+                  placeholder="20000"
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Diberikan langsung ke marketing specialist yang berhasil mencapai deal.
+              </p>
+            </div>
+
+            {/* Live Profit & Payout Breakdown Simulator */}
+            <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50/90 space-y-2.5 text-xs">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  Simulasi Bagi Hasil & Payout
                 </span>
-                <span className="text-[10px] text-slate-400 ml-1.5 font-semibold">
-                  ({formData.deal_amount > 0 ? Math.round(((formData.deal_amount - formData.hpp) / formData.deal_amount) * 100) : 0}%)
+                <span className="text-[11px] font-semibold text-slate-500">
+                  Gross Profit: <strong className="text-emerald-700">Rp {profitDist.gross_profit.toLocaleString('id-ID')}</strong>
                 </span>
+              </div>
+
+              {/* Rincian Transaksi */}
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                <div className="p-2 bg-white rounded-xl border border-slate-100">
+                  <p className="text-[10px] text-slate-400 uppercase font-semibold">1. Reimburse Modal HPP</p>
+                  <p className="mt-0.5 font-medium">Marketing: <strong className="text-slate-800">Rp {profitDist.reimburse_marketing.toLocaleString('id-ID')}</strong></p>
+                  <p className="font-medium">Platform: <strong className="text-slate-800">Rp {profitDist.reimburse_platform.toLocaleString('id-ID')}</strong></p>
+                </div>
+                <div className="p-2 bg-white rounded-xl border border-slate-100">
+                  <p className="text-[10px] text-slate-400 uppercase font-semibold">2. Potongan Profit</p>
+                  <p className="mt-0.5 font-medium">Fee Platform (10%): <strong className="text-slate-800">Rp {profitDist.platform_fee_10.toLocaleString('id-ID')}</strong></p>
+                  <p className="font-medium">Transport Mktg: <strong className="text-slate-800">Rp {profitDist.marketing_transport.toLocaleString('id-ID')}</strong></p>
+                </div>
+              </div>
+
+              {/* Payout Banner */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="p-2.5 rounded-xl bg-lime-50/80 border border-lime-200 text-lime-900">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-lime-800 flex items-center gap-1">
+                    <Briefcase className="w-3 h-3 text-[#84cc16]" /> Payout Marketing
+                  </p>
+                  <p className="text-base font-black text-slate-900 mt-0.5">
+                    Rp {profitDist.marketing_total_payout.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-[9px] text-slate-500 mt-0.5">
+                    Reimb {profitDist.reimburse_marketing > 0 ? `${(profitDist.reimburse_marketing / 1000)}k + ` : ''}Trans {(profitDist.marketing_transport / 1000)}k + Bagi {(profitDist.marketing_final_share / 1000)}k
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-cyan-50/80 border border-cyan-200 text-cyan-900">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-800 flex items-center gap-1">
+                    <Building2 className="w-3 h-3 text-cyan-600" /> Payout Platform
+                  </p>
+                  <p className="text-base font-black text-slate-900 mt-0.5">
+                    Rp {profitDist.platform_total_payout.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-[9px] text-slate-500 mt-0.5">
+                    Reimb {profitDist.reimburse_platform > 0 ? `${(profitDist.reimburse_platform / 1000)}k + ` : ''}Fee {(profitDist.platform_fee_10 / 1000)}k + Bagi {(profitDist.platform_final_share / 1000)}k
+                  </p>
+                </div>
               </div>
             </div>
 
