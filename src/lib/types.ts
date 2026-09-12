@@ -2,16 +2,31 @@ export type RedirectMode = 'smart_funnel' | 'direct_google';
 export type FeedbackChannel = 'whatsapp' | 'email' | 'both';
 export type ActionTaken = 'direct_redirect' | 'funnel_opened' | 'positive_review' | 'negative_feedback';
 
-export interface SalesAgent {
+export type UserRole = 'super_admin' | 'marketing_specialist';
+
+export interface AuthSession {
+  authenticated: boolean;
+  role?: UserRole;
+  specialist_id?: string;
+  name?: string;
+  email?: string;
+  phone_whatsapp?: string;
+}
+
+export interface MarketingSpecialist {
   id: string;
   name: string;
   phone_whatsapp: string;
   email?: string;
+  access_pin: string;
   commission_type: 'percentage' | 'fixed_amount';
   commission_rate: number;
   is_active: boolean;
   created_at: string;
 }
+
+// Alias for internal database backwards compatibility
+export type SalesAgent = MarketingSpecialist;
 
 export type SubscriptionStatus = 'active' | 'pending_verification' | 'expired';
 export type PaymentStatus = 'pending' | 'approved' | 'rejected';
@@ -29,6 +44,7 @@ export interface Venue {
   feedback_email?: string;
   owner_access_pin: string;
   is_active: boolean;
+  marketing_id?: string | null;
   sales_id?: string | null;
   deal_amount: number;
   monthly_retainer_fee: number;
@@ -85,8 +101,10 @@ export interface VenueAnalytics {
   today_scans: number;
 }
 
-export interface SalesAgentSummary extends SalesAgent {
+export interface MarketingSpecialistSummary extends MarketingSpecialist {
   total_venues: number;
   total_revenue: number;
   earned_commission: number;
 }
+
+export type SalesAgentSummary = MarketingSpecialistSummary;

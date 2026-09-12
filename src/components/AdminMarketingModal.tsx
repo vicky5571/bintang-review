@@ -1,20 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SalesAgent } from '@/lib/types';
-import { X, UserPlus, Percent, DollarSign, Phone, Mail, Sparkles } from 'lucide-react';
+import { MarketingSpecialist } from '@/lib/types';
+import { X, UserPlus, Percent, DollarSign, Phone, Mail, KeyRound } from 'lucide-react';
 
-interface AdminSalesAgentModalProps {
+interface AdminMarketingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Omit<SalesAgent, 'id' | 'created_at'>) => void;
+  onSave: (data: Omit<MarketingSpecialist, 'id' | 'created_at'>) => void;
 }
 
-export function AdminSalesAgentModal({ isOpen, onClose, onSave }: AdminSalesAgentModalProps) {
+export function AdminMarketingModal({ isOpen, onClose, onSave }: AdminMarketingModalProps) {
   const [formData, setFormData] = useState<{
     name: string;
     phone_whatsapp: string;
     email: string;
+    access_pin: string;
     commission_type: 'percentage' | 'fixed_amount';
     commission_rate: number;
     is_active: boolean;
@@ -22,6 +23,7 @@ export function AdminSalesAgentModal({ isOpen, onClose, onSave }: AdminSalesAgen
     name: '',
     phone_whatsapp: '',
     email: '',
+    access_pin: '1234',
     commission_type: 'percentage',
     commission_rate: 20,
     is_active: true,
@@ -37,6 +39,7 @@ export function AdminSalesAgentModal({ isOpen, onClose, onSave }: AdminSalesAgen
       name: formData.name.trim(),
       phone_whatsapp: formData.phone_whatsapp.trim(),
       email: formData.email.trim() || undefined,
+      access_pin: formData.access_pin.trim() || '1234',
       commission_type: formData.commission_type,
       commission_rate: Number(formData.commission_rate),
       is_active: formData.is_active,
@@ -47,6 +50,7 @@ export function AdminSalesAgentModal({ isOpen, onClose, onSave }: AdminSalesAgen
       name: '',
       phone_whatsapp: '',
       email: '',
+      access_pin: '1234',
       commission_type: 'percentage',
       commission_rate: 20,
       is_active: true,
@@ -65,7 +69,7 @@ export function AdminSalesAgentModal({ isOpen, onClose, onSave }: AdminSalesAgen
               <h3 className="font-bold text-slate-800 text-sm sm:text-base">
                 Tambah Marketing Specialist
               </h3>
-              <p className="text-[11px] text-slate-500">Daftarkan tim sales atau referral partner</p>
+              <p className="text-[11px] text-slate-500">Daftarkan akun tim Marketing Specialist baru</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
@@ -75,14 +79,14 @@ export function AdminSalesAgentModal({ isOpen, onClose, onSave }: AdminSalesAgen
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 text-sm">
           <div>
-            <label className="block text-xs font-semibold text-slate-700">Nama Lengkap Marketing / Partner *</label>
+            <label className="block text-xs font-semibold text-slate-700">Nama Lengkap Marketing Specialist *</label>
             <input
               required
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
-              placeholder="Contoh: Rian Pratama (Freelance BD)"
+              placeholder="Contoh: Rian Pratama"
             />
           </div>
 
@@ -101,7 +105,26 @@ export function AdminSalesAgentModal({ isOpen, onClose, onSave }: AdminSalesAgen
                 placeholder="6281234567890"
               />
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">Format diawali kode negara 62 tanpa spasi/tanda hubung.</p>
+            <p className="text-[10px] text-slate-400 mt-1">Digunakan sebagai identitas saat login.</p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700">PIN Akses Masuk (4-6 Digit) *</label>
+            <div className="relative mt-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <KeyRound className="w-3.5 h-3.5" />
+              </div>
+              <input
+                required
+                type="text"
+                maxLength={8}
+                value={formData.access_pin}
+                onChange={(e) => setFormData({ ...formData, access_pin: e.target.value.replace(/\D/g, '') })}
+                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl font-mono tracking-widest focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
+                placeholder="1234"
+              />
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">PIN yang digunakan Marketing Specialist untuk login ke sistem.</p>
           </div>
 
           <div>
@@ -122,7 +145,7 @@ export function AdminSalesAgentModal({ isOpen, onClose, onSave }: AdminSalesAgen
 
           <div className="pt-2 border-t border-slate-100 space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Skema Komisi Penjualan</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Skema Komisi Marketing</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -192,7 +215,7 @@ export function AdminSalesAgentModal({ isOpen, onClose, onSave }: AdminSalesAgen
               className="px-5 py-2.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition"
             >
               <UserPlus className="w-4 h-4" />
-              Simpan Marketing
+              Simpan Marketing Specialist
             </button>
           </div>
         </form>

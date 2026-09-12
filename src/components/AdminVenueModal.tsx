@@ -1,18 +1,30 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Venue, SalesAgentSummary, RedirectMode, FeedbackChannel, BillingType } from '@/lib/types';
-import { X, Save, Plus, Calendar, ShieldCheck, Sparkles } from 'lucide-react';
+import { Venue, MarketingSpecialistSummary, RedirectMode, FeedbackChannel, BillingType, UserRole } from '@/lib/types';
+import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
 
 interface AdminVenueModalProps {
   venue: Venue | null;
   isOpen: boolean;
-  salesAgents: SalesAgentSummary[];
+  marketingSpecialists: MarketingSpecialistSummary[];
+  currentRole?: UserRole;
+  currentSpecialistId?: string;
   onClose: () => void;
   onSave: (data: Partial<Venue>) => void;
 }
 
-export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }: AdminVenueModalProps) {
+export function AdminVenueModal({
+  venue,
+  isOpen,
+  marketingSpecialists,
+  currentRole,
+  currentSpecialistId,
+  onClose,
+  onSave,
+}: AdminVenueModalProps) {
+  const isMarketingSpecialistRole = currentRole === 'marketing_specialist';
+
   const [formData, setFormData] = useState<{
     name: string;
     slug: string;
@@ -22,7 +34,7 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
     whatsapp_number: string;
     owner_access_pin: string;
     is_active: boolean;
-    sales_id: string;
+    marketing_id: string;
     deal_amount: number;
     billing_type: BillingType;
     monthly_retainer_fee: number;
@@ -35,13 +47,17 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
     whatsapp_number: '',
     owner_access_pin: '1234',
     is_active: true,
-    sales_id: '',
+    marketing_id: '',
     deal_amount: 599000,
     billing_type: 'subscription',
     monthly_retainer_fee: 149000,
   });
 
   useEffect(() => {
+    const defaultMarketingId = isMarketingSpecialistRole
+      ? (currentSpecialistId || '')
+      : (marketingSpecialists[0]?.id || '');
+
     if (venue) {
       const isOneTime = venue.billing_type === 'one_time' || venue.monthly_retainer_fee === 0;
       setFormData({
@@ -53,7 +69,7 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
         whatsapp_number: venue.whatsapp_number || '',
         owner_access_pin: venue.owner_access_pin,
         is_active: venue.is_active,
-        sales_id: venue.sales_id || '',
+        marketing_id: isMarketingSpecialistRole ? (currentSpecialistId || '') : (venue.marketing_id || venue.sales_id || ''),
         deal_amount: venue.deal_amount,
         billing_type: isOneTime ? 'one_time' : 'subscription',
         monthly_retainer_fee: isOneTime ? 0 : (venue.monthly_retainer_fee || 149000),
@@ -68,20 +84,25 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
         whatsapp_number: '',
         owner_access_pin: '1234',
         is_active: true,
-        sales_id: salesAgents[0]?.id || '',
+        marketing_id: defaultMarketingId,
         deal_amount: 599000,
         billing_type: 'subscription',
         monthly_retainer_fee: 149000,
       });
     }
-  }, [venue, salesAgents]);
+  }, [venue, marketingSpecialists, isMarketingSpecialistRole, currentSpecialistId]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    onSave({
+      ...formData,
+      sales_id: formData.marketing_id,
+    });
   };
+
+  const currentSpecialistObj = marketingSpecialists.find((m) => m.id === (currentSpecialistId || formData.marketing_id));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
@@ -253,19 +274,29 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
             </div>
 
             <div className="pt-1">
-              <label className="block text-xs font-semibold text-slate-600">Sales Agent Attribution</label>
-              <select
-                value={formData.sales_id}
-                onChange={(e) => setFormData({ ...formData, sales_id: e.target.value })}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl bg-white focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
-              >
-                <option value="">-- Pilih Sales Agent --</option>
-                {salesAgents.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} ({a.commission_rate}%)
-                  </option>
-                ))}
-              </select>
+              <label className="block text-xs font-semibold text-slate-600">Marketing Specialist Penanggung Jawab</label>
+              {isMarketingSpecialistRole ? (
+                <div className="mt-1 flex items-center gap-2 p-2.5 bg-lime-50/70 border border-lime-200 rounded-xl text-xs text-slate-800">
+                  <UserCheck className="w-4 h-4 text-[#84cc16] shrink-0" />
+                  <div>
+                    <p className="font-semibold">{currentSpecialistObj?.name || 'Anda'}</p>
+                    <p className="text-[10px] text-slate-500">Otomatis diatribusikan ke akun Anda</p>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  value={formData.marketing_id}
+                  onChange={(e) => setFormData({ ...formData, marketing_id: e.target.value })}
+                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl bg-white focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
+                >
+                  <option value="">-- Tanpa Marketing Specialist --</option>
+                  {marketingSpecialists.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({a.commission_type === 'percentage' ? `${a.commission_rate}%` : `Rp ${a.commission_rate.toLocaleString('id-ID')}`})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
@@ -293,3 +324,4 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
     </div>
   );
 }
+

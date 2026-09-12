@@ -1,75 +1,69 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Venue, SalesAgent, SalesAgentSummary, PaymentConfirmation } from '@/lib/types';
-import { dataStore } from '@/lib/store';
-import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock, UserPlus } from 'lucide-react';
+import { Venue, MarketingSpecialist, MarketingSpecialistSummary, PaymentConfirmation, AuthSession } from '@/lib/types';
+import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock, UserPlus, Briefcase, Award, TrendingUp } from 'lucide-react';
 import { AdminVenueModal } from '@/components/AdminVenueModal';
-import { AdminSalesAgentModal } from '@/components/AdminSalesAgentModal';
+import { AdminMarketingModal } from '@/components/AdminMarketingModal';
 import { QrGeneratorModal } from '@/components/QrGeneratorModal';
 import { AdminLoginModal } from '@/components/AdminLoginModal';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthSession | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [salesAgents, setSalesAgents] = useState<SalesAgentSummary[]>([]);
+  const [marketingSpecialists, setMarketingSpecialists] = useState<MarketingSpecialistSummary[]>([]);
   const [payments, setPayments] = useState<PaymentConfirmation[]>([]);
   const [selectedVenueForEdit, setSelectedVenueForEdit] = useState<Venue | null>(null);
   const [selectedVenueForQr, setSelectedVenueForQr] = useState<Venue | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
+  const [isMarketingModalOpen, setIsMarketingModalOpen] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (user?: AuthSession | null) => {
     try {
-      const [resV, resS, resP] = await Promise.all([
+      const activeUser = user || currentUser;
+      const [resV, resM, resP] = await Promise.all([
         fetch('/api/admin/venues'),
-        fetch('/api/admin/sales-agents'),
-        fetch('/api/admin/payment'),
+        fetch('/api/admin/marketing-specialists'),
+        activeUser?.role === 'super_admin' ? fetch('/api/admin/payment') : Promise.resolve(null),
       ]);
 
       if (resV.ok) {
         const dV = await resV.json();
         setVenues(dV.venues || []);
-      } else {
-        setVenues(await dataStore.listVenues());
       }
 
-      if (resS.ok) {
-        const dS = await resS.json();
-        setSalesAgents(dS.salesAgents || []);
-      } else {
-        setSalesAgents(await dataStore.listSalesAgents());
+      if (resM.ok) {
+        const dM = await resM.json();
+        setMarketingSpecialists(dM.marketingSpecialists || []);
       }
 
-      if (resP.ok) {
+      if (resP && resP.ok) {
         const dP = await resP.json();
         setPayments(dP.payments || []);
-      } else {
-        setPayments(await dataStore.listPaymentConfirmations());
       }
     } catch (err) {
-      console.warn('API fetch fallback to dataStore:', err);
-      const vList = await dataStore.listVenues();
-      setVenues(vList);
-      const saList = await dataStore.listSalesAgents();
-      setSalesAgents(saList);
-      const pList = await dataStore.listPaymentConfirmations();
-      setPayments(pList);
+      console.warn('API fetch error during admin load:', err);
     }
   };
 
   const checkAuth = async () => {
     try {
-      const res = await fetch('/api/admin/auth');
+      const res = await fetch('/api/auth/me');
       const data = await res.json();
-      if (data.authenticated) {
+      if (data.authenticated && data.user) {
         setIsAuthenticated(true);
-        await loadData();
+        setCurrentUser(data.user);
+        await loadData(data.user);
+      } else {
+        setIsAuthenticated(false);
+        setCurrentUser(null);
       }
     } catch (err) {
-      console.error('Failed to check admin auth:', err);
+      console.error('Failed to check auth:', err);
+      setIsAuthenticated(false);
     } finally {
       setAuthLoading(false);
     }
@@ -81,15 +75,12 @@ export default function AdminPage() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/admin/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'logout' }),
-      });
+      await fetch('/api/auth/me', { method: 'POST' });
     } catch (err) {
       console.error('Logout error:', err);
     }
     setIsAuthenticated(false);
+    setCurrentUser(null);
   };
 
   const handleSaveVenue = async (formData: Partial<Venue>) => {
@@ -110,16 +101,12 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error('Error saving venue via API:', err);
-      if (selectedVenueForEdit) {
-        await dataStore.updateVenue(selectedVenueForEdit.id, formData);
-      } else {
-        await dataStore.createVenue(formData as any);
-      }
+      alert('Terjadi kendala jaringan saat menyimpan venue.');
     }
 
     setIsModalOpen(false);
     setSelectedVenueForEdit(null);
-    await loadData();
+    await loadData(currentUser);
   };
 
   const handleVerifyPayment = async (id: string, status: 'approved' | 'rejected') => {
@@ -131,14 +118,13 @@ export default function AdminPage() {
       });
     } catch (err) {
       console.error('Error verifying payment via API:', err);
-      await dataStore.verifyPaymentConfirmation(id, status, 'Diverifikasi oleh Super Admin');
     }
-    await loadData();
+    await loadData(currentUser);
   };
 
-  const handleSaveSalesAgent = async (formData: Omit<SalesAgent, 'id' | 'created_at'>) => {
+  const handleSaveMarketingSpecialist = async (formData: Omit<MarketingSpecialist, 'id' | 'created_at'>) => {
     try {
-      const res = await fetch('/api/admin/sales-agents', {
+      const res = await fetch('/api/admin/marketing-specialists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -146,22 +132,22 @@ export default function AdminPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || 'Gagal menyimpan data marketing');
+        alert(data.error || 'Gagal menyimpan data Marketing Specialist');
         return;
       }
     } catch (err) {
-      console.error('Error saving sales agent via API:', err);
-      await dataStore.createSalesAgent(formData);
+      console.error('Error saving Marketing Specialist via API:', err);
+      alert('Terjadi kesalahan jaringan.');
     }
 
-    setIsSalesModalOpen(false);
-    await loadData();
+    setIsMarketingModalOpen(false);
+    await loadData(currentUser);
   };
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500">
-        Memverifikasi akses console admin...
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-medium text-sm">
+        Memverifikasi sesi role akses...
       </div>
     );
   }
@@ -170,58 +156,127 @@ export default function AdminPage() {
     return (
       <AdminLoginModal
         onSuccess={() => {
-          setIsAuthenticated(true);
-          loadData();
+          checkAuth();
         }}
       />
     );
   }
 
+  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isMarketingSpecialist = currentUser?.role === 'marketing_specialist';
+
+  // Find logged-in specialist stats if applicable
+  const currentSpecialistSummary = isMarketingSpecialist
+    ? marketingSpecialists.find((m) => m.id === currentUser?.specialist_id)
+    : null;
+
   return (
     <div className="min-h-screen bg-slate-50/70 pb-16">
       {/* Top Navbar */}
-      <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
+      <header className="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#84cc16] via-[#10b981] to-[#06b6d4] text-white flex items-center justify-center font-black shadow-md shadow-lime-500/15">
-            <Store className="w-5 h-5" />
+            {isSuperAdmin ? <Store className="w-5 h-5" /> : <Briefcase className="w-5 h-5" />}
           </div>
           <div>
-            <h1 className="text-lg font-black tracking-tight text-slate-900">
-              Bintang<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">Review</span> — Super Admin
-            </h1>
-            <p className="text-xs text-slate-500">Developer & Agency Management Console</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900">
+                Bintang<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">Review</span>
+              </h1>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  isSuperAdmin
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                }`}
+              >
+                {isSuperAdmin ? 'Super Admin' : 'Marketing Specialist'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">
+              {isSuperAdmin
+                ? 'Developer & Agency Management Console'
+                : `Halo, ${currentUser?.name || 'Partner'} • Portal Mitra Klien Kafe`}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => {
               setSelectedVenueForEdit(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 transition active:scale-95"
+            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 transition active:scale-95"
           >
-            <Plus className="w-4 h-4" /> Tambah Klien Venue
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Tambah Klien Venue</span>
+            <span className="sm:hidden">Tambah</span>
           </button>
 
           <button
             onClick={handleLogout}
-            title="Kunci & Keluar Panel Admin"
-            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs font-semibold rounded-xl border border-slate-200 transition"
+            title="Keluar Sesi"
+            className="flex items-center gap-1.5 px-3 py-2 sm:py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs font-semibold rounded-xl border border-slate-200 transition"
           >
-            <LogOut className="w-3.5 h-3.5" /> Keluar
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Keluar</span>
           </button>
         </div>
       </header>
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 space-y-8">
+        {/* MARKETING SPECIALIST PERSONAL SUMMARY CARDS */}
+        {isMarketingSpecialist && (
+          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-50 border border-cyan-200/60 flex items-center justify-center text-[#06b6d4]">
+                <Store className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Klien Venue Saya</p>
+                <h3 className="text-2xl font-black text-slate-900">
+                  {currentSpecialistSummary?.total_venues ?? venues.length}{' '}
+                  <span className="text-xs font-semibold text-slate-400">kafe</span>
+                </h3>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-lime-50 border border-lime-200/60 flex items-center justify-center text-[#84cc16]">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Total Nilai Deal</p>
+                <h3 className="text-2xl font-black text-slate-900">
+                  Rp {(currentSpecialistSummary?.total_revenue ?? venues.reduce((acc, v) => acc + (v.deal_amount || 0), 0)).toLocaleString('id-ID')}
+                </h3>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl p-5 border border-emerald-200/80 shadow-sm bg-gradient-to-br from-emerald-50/40 via-white to-lime-50/30 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                <Award className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs text-emerald-800 font-medium">Komisi Berhak Diterima</p>
+                <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
+                  Rp {(currentSpecialistSummary?.earned_commission ?? 0).toLocaleString('id-ID')}
+                </h3>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Venues Table Card */}
         <section className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Store className="w-5 h-5 text-[#10b981]" />
-              <h2 className="font-bold text-slate-800">Daftar Klien Kafe & Venue ({venues.length})</h2>
+              <h2 className="font-bold text-slate-800">
+                {isMarketingSpecialist ? 'Daftar Klien Kafe Saya' : 'Daftar Klien Kafe & Venue'} ({venues.length})
+              </h2>
             </div>
           </div>
 
@@ -239,177 +294,87 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {venues.map((v) => (
-                  <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-900">{v.name}</td>
-                    <td className="px-6 py-4">
-                      <a
-                        href={`/r/${v.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-cyan-600 hover:text-cyan-700 font-mono text-xs flex items-center gap-1 hover:underline"
-                      >
-                        /r/{v.slug} <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                          v.redirect_mode === 'smart_funnel'
-                            ? 'bg-lime-50 text-lime-800 border border-lime-200/80'
-                            : 'bg-cyan-50 text-cyan-800 border border-cyan-200/80'
-                        }`}
-                      >
-                        {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {v.billing_type === 'one_time' || v.monthly_retainer_fee === 0 ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-semibold border border-purple-200/80">
-                          💎 Lifetime
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-semibold border border-blue-200/80">
-                          🔄 Rp {(v.monthly_retainer_fee || 0).toLocaleString('id-ID')}/bln
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 font-mono font-bold text-slate-600">{v.owner_access_pin}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-                          v.is_active ? 'text-emerald-600' : 'text-slate-400'
-                        }`}
-                      >
-                        <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                        {v.is_active ? 'Aktif' : 'Non-Aktif'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedVenueForQr(v);
-                          setIsQrModalOpen(true);
-                        }}
-                        className="p-2 text-slate-500 hover:text-cyan-600 rounded-lg hover:bg-slate-100 transition"
-                        title="Download QR & NFC"
-                      >
-                        <QrCode className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedVenueForEdit(v);
-                          setIsModalOpen(true);
-                        }}
-                        className="px-3 py-1.5 bg-slate-100 text-slate-700 font-medium text-xs rounded-lg hover:bg-slate-200 transition"
-                      >
-                        Edit
-                      </button>
-                      <a
-                        href={`/portal/${v.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-1.5 bg-slate-900 text-white font-medium text-xs rounded-lg hover:bg-slate-800 transition"
-                      >
-                        Portal
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* Payment Verifications Section */}
-        <section className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-[#00c48c]" />
-              <h2 className="font-bold text-slate-800 text-sm sm:text-base">
-                Antrean Konfirmasi Pembayaran Retainer ({payments.filter((p) => p.status === 'pending').length} Menunggu)
-              </h2>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-3">Venue Kafe</th>
-                  <th className="px-6 py-3">Nominal</th>
-                  <th className="px-6 py-3">Metode & Pengirim</th>
-                  <th className="px-6 py-3">Catatan / Ref</th>
-                  <th className="px-6 py-3">Tanggal Submit</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Aksi Verifikasi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {payments.length === 0 ? (
+                {venues.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
-                      🎉 Belum ada konfirmasi pembayaran yang dikirimkan klien.
+                    <td colSpan={7} className="px-6 py-10 text-center text-slate-400">
+                      Belum ada klien kafe terdaftar. Klik <strong>Tambah Klien Venue</strong> untuk mendaftarkan kafe baru.
                     </td>
                   </tr>
                 ) : (
-                  payments.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50/70 transition">
-                      <td className="px-6 py-4 font-bold text-slate-800">
-                        {p.venue_name || 'Venue'}
-                      </td>
-                      <td className="px-6 py-4 font-black text-slate-900">
-                        Rp {p.amount.toLocaleString('id-ID')}
+                  venues.map((v) => (
+                    <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-6 py-4 font-bold text-slate-900">{v.name}</td>
+                      <td className="px-6 py-4">
+                        <a
+                          href={`/r/${v.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-cyan-600 hover:text-cyan-700 font-mono text-xs flex items-center gap-1 hover:underline"
+                        >
+                          /r/{v.slug} <ExternalLink className="w-3 h-3" />
+                        </a>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-semibold text-slate-700 block">{p.payment_method}</span>
-                        <span className="text-[11px] text-slate-400">a.n. {p.sender_name}</span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 max-w-xs truncate">
-                        {p.notes || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-slate-400 text-[11px]">
-                        {new Date(p.created_at).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        <span
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                            v.redirect_mode === 'smart_funnel'
+                              ? 'bg-lime-50 text-lime-800 border border-lime-200/80'
+                              : 'bg-cyan-50 text-cyan-800 border border-cyan-200/80'
+                          }`}
+                        >
+                          {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
+                        </span>
                       </td>
                       <td className="px-6 py-4">
-                        {p.status === 'pending' ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full border border-amber-200">
-                            <Clock className="w-3 h-3" /> Menunggu
-                          </span>
-                        ) : p.status === 'approved' ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-200">
-                            <CheckCircle className="w-3 h-3" /> Disetujui
+                        {v.billing_type === 'one_time' || v.monthly_retainer_fee === 0 ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-semibold border border-purple-200/80">
+                            💎 Lifetime
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full border border-rose-200">
-                            <XCircle className="w-3 h-3" /> Ditolak
+                          <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-semibold border border-blue-200/80">
+                            🔄 Rp {(v.monthly_retainer_fee || 0).toLocaleString('id-ID')}/bln
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        {p.status === 'pending' ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleVerifyPayment(p.id, 'approved')}
-                              className="px-3 py-1.5 bg-[#00c48c] hover:bg-[#00a877] text-slate-950 font-bold rounded-lg shadow-sm transition active:scale-95 text-[11px]"
-                            >
-                              Setujui (+30 Hari)
-                            </button>
-                            <button
-                              onClick={() => handleVerifyPayment(p.id, 'rejected')}
-                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold rounded-lg border border-rose-200 transition active:scale-95 text-[11px]"
-                            >
-                              Tolak
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-slate-400 italic">Selesai diproses</span>
-                        )}
+                      <td className="px-6 py-4 font-mono font-bold text-slate-600">{v.owner_access_pin}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
+                            v.is_active ? 'text-emerald-600' : 'text-slate-400'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                          {v.is_active ? 'Aktif' : 'Non-Aktif'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedVenueForQr(v);
+                            setIsQrModalOpen(true);
+                          }}
+                          className="p-2 text-slate-500 hover:text-cyan-600 rounded-lg hover:bg-slate-100 transition"
+                          title="Download QR & NFC"
+                        >
+                          <QrCode className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedVenueForEdit(v);
+                            setIsModalOpen(true);
+                          }}
+                          className="px-3 py-1.5 bg-slate-100 text-slate-700 font-medium text-xs rounded-lg hover:bg-slate-200 transition"
+                        >
+                          Edit
+                        </button>
+                        <a
+                          href={`/portal/${v.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1.5 bg-slate-900 text-white font-medium text-xs rounded-lg hover:bg-slate-800 transition"
+                        >
+                          Portal
+                        </a>
                       </td>
                     </tr>
                   ))
@@ -419,49 +384,153 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* Sales & Commission Dashboard */}
-        <section className="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-[#84cc16]" />
-              <h2 className="font-bold text-slate-800 text-sm sm:text-base">Mesin Komisi Sales & Referral Partner</h2>
-            </div>
-            <button
-              onClick={() => setIsSalesModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/15 transition active:scale-95 w-fit"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              Tambah Marketing
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {salesAgents.map((agent) => (
-              <div key={agent.id} className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-2 hover:border-emerald-200 transition">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-slate-900">{agent.name}</h3>
-                  <span className="text-xs bg-gradient-to-r from-lime-50 to-cyan-50 text-slate-800 border border-emerald-200/80 px-2.5 py-0.5 rounded-full font-bold">
-                    {agent.commission_type === 'percentage' ? `${agent.commission_rate}%` : `Rp ${agent.commission_rate.toLocaleString('id-ID')}`}
-                  </span>
-                </div>
-                <div className="text-xs text-slate-500">Venue Terjual: {agent.total_venues} kafe</div>
-                <div className="text-xs text-slate-500">
-                  Total Deal: Rp {agent.total_revenue.toLocaleString('id-ID')}
-                </div>
-                <div className="pt-2 border-t border-slate-100 font-black text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">
-                  Komisi Berhak Diterima: Rp {agent.earned_commission.toLocaleString('id-ID')}
-                </div>
+        {/* Super Admin Only: Payment Verifications Section */}
+        {isSuperAdmin && (
+          <section className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-[#00c48c]" />
+                <h2 className="font-bold text-slate-800 text-sm sm:text-base">
+                  Antrean Konfirmasi Pembayaran Retainer ({payments.filter((p) => p.status === 'pending').length} Menunggu)
+                </h2>
               </div>
-            ))}
-          </div>
-        </section>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-3">Venue Kafe</th>
+                    <th className="px-6 py-3">Nominal</th>
+                    <th className="px-6 py-3">Metode & Pengirim</th>
+                    <th className="px-6 py-3">Catatan / Ref</th>
+                    <th className="px-6 py-3">Tanggal Submit</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3 text-right">Aksi Verifikasi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payments.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
+                        🎉 Belum ada konfirmasi pembayaran yang dikirimkan klien.
+                      </td>
+                    </tr>
+                  ) : (
+                    payments.map((p) => (
+                      <tr key={p.id} className="hover:bg-slate-50/70 transition">
+                        <td className="px-6 py-4 font-bold text-slate-800">
+                          {p.venue_name || 'Venue'}
+                        </td>
+                        <td className="px-6 py-4 font-black text-slate-900">
+                          Rp {p.amount.toLocaleString('id-ID')}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-semibold text-slate-700 block">{p.payment_method}</span>
+                          <span className="text-[11px] text-slate-400">a.n. {p.sender_name}</span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-500 max-w-xs truncate">
+                          {p.notes || '-'}
+                        </td>
+                        <td className="px-6 py-4 text-slate-400 text-[11px]">
+                          {new Date(p.created_at).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                        <td className="px-6 py-4">
+                          {p.status === 'pending' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full border border-amber-200">
+                              <Clock className="w-3 h-3" /> Menunggu
+                            </span>
+                          ) : p.status === 'approved' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-200">
+                              <CheckCircle className="w-3 h-3" /> Disetujui
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full border border-rose-200">
+                              <XCircle className="w-3 h-3" /> Ditolak
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {p.status === 'pending' ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleVerifyPayment(p.id, 'approved')}
+                                className="px-3 py-1.5 bg-[#00c48c] hover:bg-[#00a877] text-slate-950 font-bold rounded-lg shadow-sm transition active:scale-95 text-[11px]"
+                              >
+                                Setujui (+30 Hari)
+                              </button>
+                              <button
+                                onClick={() => handleVerifyPayment(p.id, 'rejected')}
+                                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold rounded-lg border border-rose-200 transition active:scale-95 text-[11px]"
+                              >
+                                Tolak
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 italic">Selesai diproses</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* Super Admin Only: Marketing Specialists Dashboard */}
+        {isSuperAdmin && (
+          <section className="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-[#84cc16]" />
+                <h2 className="font-bold text-slate-800 text-sm sm:text-base">Mesin Komisi Marketing Specialist & Mitra Referral</h2>
+              </div>
+              <button
+                onClick={() => setIsMarketingModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/15 transition active:scale-95 w-fit"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                Tambah Marketing Specialist
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {marketingSpecialists.map((agent) => (
+                <div key={agent.id} className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-2 hover:border-emerald-200 transition">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-900">{agent.name}</h3>
+                    <span className="text-xs bg-gradient-to-r from-lime-50 to-cyan-50 text-slate-800 border border-emerald-200/80 px-2.5 py-0.5 rounded-full font-bold">
+                      {agent.commission_type === 'percentage' ? `${agent.commission_rate}%` : `Rp ${agent.commission_rate.toLocaleString('id-ID')}`}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-500">Venue Terjual: {agent.total_venues} kafe</div>
+                  <div className="text-xs text-slate-500">
+                    Total Deal: Rp {agent.total_revenue.toLocaleString('id-ID')}
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 font-black text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">
+                    Komisi Berhak Diterima: Rp {agent.earned_commission.toLocaleString('id-ID')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
-      {/* Edit / Create Modal */}
+      {/* Edit / Create Venue Modal */}
       <AdminVenueModal
         venue={selectedVenueForEdit}
         isOpen={isModalOpen}
-        salesAgents={salesAgents}
+        marketingSpecialists={marketingSpecialists}
+        currentRole={currentUser?.role}
+        currentSpecialistId={currentUser?.specialist_id}
         onClose={() => {
           setIsModalOpen(false);
           setSelectedVenueForEdit(null);
@@ -469,11 +538,11 @@ export default function AdminPage() {
         onSave={handleSaveVenue}
       />
 
-      {/* Sales Agent Creation Modal */}
-      <AdminSalesAgentModal
-        isOpen={isSalesModalOpen}
-        onClose={() => setIsSalesModalOpen(false)}
-        onSave={handleSaveSalesAgent}
+      {/* Marketing Specialist Creation Modal (Super Admin Only) */}
+      <AdminMarketingModal
+        isOpen={isMarketingModalOpen}
+        onClose={() => setIsMarketingModalOpen(false)}
+        onSave={handleSaveMarketingSpecialist}
       />
 
       {/* QR & NFC Asset Viewer */}
@@ -488,3 +557,4 @@ export default function AdminPage() {
     </div>
   );
 }
+

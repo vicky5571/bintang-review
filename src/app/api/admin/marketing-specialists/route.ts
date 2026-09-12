@@ -3,12 +3,12 @@ import { dataStore } from '@/lib/store';
 
 export async function GET() {
   try {
-    const list = await dataStore.listSalesAgents();
-    return NextResponse.json({ success: true, salesAgents: list });
+    const list = await dataStore.listMarketingSpecialists();
+    return NextResponse.json({ success: true, marketingSpecialists: list, salesAgents: list });
   } catch (error) {
-    console.error('List sales agents API error:', error);
+    console.error('List marketing specialists API error:', error);
     return NextResponse.json(
-      { error: 'Gagal memuat data sales agents' },
+      { error: 'Gagal memuat data Marketing Specialists' },
       { status: 500 }
     );
   }
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const agent = await dataStore.createSalesAgent({
+    const specialist = await dataStore.createMarketingSpecialist({
       name: name.trim(),
       phone_whatsapp: phone_whatsapp.trim(),
       email: email?.trim() || undefined,
@@ -36,11 +36,15 @@ export async function POST(request: Request) {
       is_active: is_active !== undefined ? Boolean(is_active) : true,
     });
 
-    return NextResponse.json({ success: true, salesAgent: agent });
+    return NextResponse.json({
+      success: true,
+      marketingSpecialist: specialist,
+      salesAgent: specialist,
+    });
   } catch (error: any) {
-    console.error('Create sales agent API error:', error);
+    console.error('Create marketing specialist API error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Gagal menyimpan data sales agent.' },
+      { error: error?.message || 'Gagal menyimpan data Marketing Specialist.' },
       { status: 500 }
     );
   }

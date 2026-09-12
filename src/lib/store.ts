@@ -1,22 +1,25 @@
 import {
   Venue,
+  MarketingSpecialist,
+  MarketingSpecialistSummary,
   SalesAgent,
+  SalesAgentSummary,
   ScanLog,
   FeedbackMessage,
   VenueAnalytics,
-  SalesAgentSummary,
   PaymentConfirmation,
 } from './types';
 import { supabase, supabaseAdmin, isSupabaseConfigured } from './supabase/client';
 
 // In-Memory Data Store fallback
 class InMemoryStore {
-  private salesAgents: SalesAgent[] = [
+  private marketingSpecialists: MarketingSpecialist[] = [
     {
       id: '00000000-0000-0000-0000-000000000001',
-      name: 'Budi Santoso (Partner BD)',
+      name: 'Budi Santoso (Marketing Specialist)',
       phone_whatsapp: '628123456789',
       email: 'budi@bintangreview.id',
+      access_pin: '1234',
       commission_type: 'percentage',
       commission_rate: 20,
       is_active: true,
@@ -37,6 +40,7 @@ class InMemoryStore {
       feedback_email: 'manager@kopisenja.com',
       owner_access_pin: '1234',
       is_active: true,
+      marketing_id: '00000000-0000-0000-0000-000000000001',
       sales_id: '00000000-0000-0000-0000-000000000001',
       deal_amount: 599000,
       monthly_retainer_fee: 49000,
@@ -69,14 +73,20 @@ class InMemoryStore {
     return venue ? { ...venue } : null;
   }
 
-  async listVenues(): Promise<Venue[]> {
+  async listVenues(marketingId?: string): Promise<Venue[]> {
+    if (marketingId) {
+      return this.venues.filter((v) => v.marketing_id === marketingId || v.sales_id === marketingId);
+    }
     return [...this.venues];
   }
 
   async createVenue(data: Omit<Venue, 'id' | 'created_at' | 'updated_at'>): Promise<Venue> {
     const billing_type = data.billing_type || (data.monthly_retainer_fee === 0 ? 'one_time' : 'subscription');
+    const marketing_id = data.marketing_id || data.sales_id || null;
     const newVenue: Venue = {
       ...data,
+      marketing_id,
+      sales_id: marketing_id,
       billing_type,
       monthly_retainer_fee: billing_type === 'one_time' ? 0 : data.monthly_retainer_fee,
       subscription_status: data.subscription_status || 'active',
@@ -157,18 +167,20 @@ class InMemoryStore {
     };
   }
 
-  async listSalesAgents(): Promise<SalesAgentSummary[]> {
-    return this.salesAgents.map((agent) => {
-      const agentVenues = this.venues.filter((v) => v.sales_id === agent.id);
-      const total_venues = agentVenues.length;
-      const total_revenue = agentVenues.reduce((sum, v) => sum + (Number(v.deal_amount) || 0), 0);
+  async listMarketingSpecialists(): Promise<MarketingSpecialistSummary[]> {
+    return this.marketingSpecialists.map((specialist) => {
+      const specialistVenues = this.venues.filter(
+        (v) => v.marketing_id === specialist.id || v.sales_id === specialist.id
+      );
+      const total_venues = specialistVenues.length;
+      const total_revenue = specialistVenues.reduce((sum, v) => sum + (Number(v.deal_amount) || 0), 0);
       const earned_commission =
-        agent.commission_type === 'percentage'
-          ? (total_revenue * agent.commission_rate) / 100
-          : total_venues * agent.commission_rate;
+        specialist.commission_type === 'percentage'
+          ? (total_revenue * specialist.commission_rate) / 100
+          : total_venues * specialist.commission_rate;
 
       return {
-        ...agent,
+        ...specialist,
         total_venues,
         total_revenue,
         earned_commission,
@@ -176,15 +188,39 @@ class InMemoryStore {
     });
   }
 
-  async createSalesAgent(data: Omit<SalesAgent, 'id' | 'created_at'>): Promise<SalesAgent> {
-    const newAgent: SalesAgent = {
+  async listSalesAgents(): Promise<SalesAgentSummary[]> {
+    return this.listMarketingSpecialists();
+  }
+
+  async createMarketingSpecialist(
+    data: Omit<MarketingSpecialist, 'id' | 'created_at'>
+  ): Promise<MarketingSpecialist> {
+    const newSpecialist: MarketingSpecialist = {
       ...data,
-      id: `agent-${Date.now()}`,
+      access_pin: data.access_pin || '1234',
+      id: `specialist-${Date.now()}`,
       is_active: data.is_active !== undefined ? data.is_active : true,
       created_at: new Date().toISOString(),
     };
-    this.salesAgents.push(newAgent);
-    return { ...newAgent };
+    this.marketingSpecialists.push(newSpecialist);
+    return { ...newSpecialist };
+  }
+
+  async createSalesAgent(data: Omit<SalesAgent, 'id' | 'created_at'>): Promise<SalesAgent> {
+    return this.createMarketingSpecialist(data);
+  }
+
+  async getMarketingSpecialistByCredentials(
+    identifier: string,
+    pin: string
+  ): Promise<MarketingSpecialist | null> {
+    const cleanId = identifier.trim().toLowerCase().replace(/\D/g, '');
+    const found = this.marketingSpecialists.find((s) => {
+      const matchPhone = s.phone_whatsapp && s.phone_whatsapp.replace(/\D/g, '') === cleanId;
+      const matchEmail = s.email && s.email.toLowerCase() === identifier.trim().toLowerCase();
+      return (matchPhone || matchEmail) && s.access_pin === pin && s.is_active;
+    });
+    return found ? { ...found } : null;
   }
 
   async submitPaymentConfirmation(
@@ -287,21 +323,27 @@ class StoreRepository {
     return this.inMemory.getVenueById(id);
   }
 
-  async listVenues(): Promise<Venue[]> {
+  async listVenues(marketingId?: string): Promise<Venue[]> {
     const client = supabaseAdmin || supabase;
     if (isSupabaseConfigured && client) {
       try {
-        const { data, error } = await client
+        let query = client
           .from('venues')
           .select('*')
           .order('created_at', { ascending: false });
+
+        if (marketingId) {
+          query = query.eq('sales_id', marketingId);
+        }
+
+        const { data, error } = await query;
 
         if (!error && data && data.length > 0) return data as Venue[];
       } catch (err) {
         console.warn('Supabase listVenues error, using fallback:', err);
       }
     }
-    return this.inMemory.listVenues();
+    return this.inMemory.listVenues(marketingId);
   }
 
   async createVenue(data: Omit<Venue, 'id' | 'created_at' | 'updated_at'>): Promise<Venue> {
@@ -492,7 +534,7 @@ class StoreRepository {
     return this.inMemory.getVenueAnalytics(venueId);
   }
 
-  async listSalesAgents(): Promise<SalesAgentSummary[]> {
+  async listMarketingSpecialists(): Promise<MarketingSpecialistSummary[]> {
     const client = supabaseAdmin || supabase;
     if (isSupabaseConfigured && client) {
       try {
@@ -511,6 +553,7 @@ class StoreRepository {
 
             return {
               ...agent,
+              access_pin: agent.access_pin || '1234',
               total_venues,
               total_revenue,
               earned_commission,
@@ -518,23 +561,31 @@ class StoreRepository {
           });
         }
       } catch (err) {
-        console.warn('Supabase listSalesAgents error, using fallback:', err);
+        console.warn('Supabase listMarketingSpecialists error, using fallback:', err);
       }
     }
-    return this.inMemory.listSalesAgents();
+    return this.inMemory.listMarketingSpecialists();
   }
 
-  async createSalesAgent(data: Omit<SalesAgent, 'id' | 'created_at'>): Promise<SalesAgent> {
+  async listSalesAgents(): Promise<SalesAgentSummary[]> {
+    return this.listMarketingSpecialists();
+  }
+
+  async createMarketingSpecialist(
+    data: Omit<MarketingSpecialist, 'id' | 'created_at'>
+  ): Promise<MarketingSpecialist> {
     const client = supabaseAdmin || supabase;
+    const pin = data.access_pin || '1234';
     if (isSupabaseConfigured && client) {
       try {
-        const { data: created, error } = await client
+        let { data: created, error } = await client
           .from('sales_agents')
           .insert([
             {
               name: data.name,
               phone_whatsapp: data.phone_whatsapp,
               email: data.email || null,
+              access_pin: pin,
               commission_type: data.commission_type || 'percentage',
               commission_rate: data.commission_rate || 20,
               is_active: data.is_active !== undefined ? data.is_active : true,
@@ -543,12 +594,70 @@ class StoreRepository {
           .select()
           .single();
 
-        if (!error && created) return created as SalesAgent;
+        if (error && error.code === 'PGRST204') {
+          const retry = await client
+            .from('sales_agents')
+            .insert([
+              {
+                name: data.name,
+                phone_whatsapp: data.phone_whatsapp,
+                email: data.email || null,
+                commission_type: data.commission_type || 'percentage',
+                commission_rate: data.commission_rate || 20,
+                is_active: data.is_active !== undefined ? data.is_active : true,
+              },
+            ])
+            .select()
+            .single();
+
+          if (!retry.error && retry.data) {
+            return {
+              ...retry.data,
+              access_pin: pin,
+            } as MarketingSpecialist;
+          }
+        }
+
+        if (!error && created) return { ...created, access_pin: pin } as MarketingSpecialist;
       } catch (err) {
-        console.warn('Supabase createSalesAgent error, using fallback:', err);
+        console.warn('Supabase createMarketingSpecialist error, using fallback:', err);
       }
     }
-    return this.inMemory.createSalesAgent(data);
+    return this.inMemory.createMarketingSpecialist({ ...data, access_pin: pin });
+  }
+
+  async createSalesAgent(data: Omit<SalesAgent, 'id' | 'created_at'>): Promise<SalesAgent> {
+    return this.createMarketingSpecialist(data);
+  }
+
+  async getMarketingSpecialistByCredentials(
+    identifier: string,
+    pin: string
+  ): Promise<MarketingSpecialist | null> {
+    const cleanId = identifier.trim().toLowerCase().replace(/\D/g, '');
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
+      try {
+        const { data: agents } = await client.from('sales_agents').select('*').eq('is_active', true);
+        if (agents && agents.length > 0) {
+          const matched = agents.find((a: any) => {
+            const matchPhone = a.phone_whatsapp && a.phone_whatsapp.replace(/\D/g, '') === cleanId;
+            const matchEmail = a.email && a.email.toLowerCase() === identifier.trim().toLowerCase();
+            const storedPin = a.access_pin || '1234';
+            return (matchPhone || matchEmail) && storedPin === pin;
+          });
+          if (matched) {
+            return {
+              ...matched,
+              access_pin: matched.access_pin || '1234',
+            } as MarketingSpecialist;
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase getMarketingSpecialistByCredentials error, using fallback:', err);
+      }
+    }
+    return this.inMemory.getMarketingSpecialistByCredentials(identifier, pin);
   }
 
   async submitPaymentConfirmation(

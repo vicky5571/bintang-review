@@ -177,7 +177,7 @@ describe('Admin Management & Auth Operations', () => {
   });
 
   it('should list venues via /api/admin/venues GET route', async () => {
-    const res = await venuesGet();
+    const res = await venuesGet(new Request('http://localhost:3000/api/admin/venues'));
     expect(res.status).toBe(200);
 
     const body = await res.json();

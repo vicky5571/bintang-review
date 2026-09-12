@@ -1,9 +1,23 @@
 import { NextResponse } from 'next/server';
 import { dataStore } from '@/lib/store';
+import { getSessionFromRequest } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const venues = await dataStore.listVenues();
+    const session = getSessionFromRequest(request);
+    let specialistFilter: string | undefined = undefined;
+
+    const { searchParams } = new URL(request.url);
+    const querySpecialist = searchParams.get('marketing_id') || searchParams.get('sales_id');
+
+    // If logged in as marketing specialist, strictly enforce scoping to their own venues
+    if (session && session.role === 'marketing_specialist' && session.specialist_id) {
+      specialistFilter = session.specialist_id;
+    } else if (querySpecialist) {
+      specialistFilter = querySpecialist;
+    }
+
+    const venues = await dataStore.listVenues(specialistFilter);
     return NextResponse.json({ success: true, venues });
   } catch (error) {
     console.error('List venues API error:', error);
@@ -16,6 +30,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = getSessionFromRequest(request);
     const body = await request.json();
     const {
       id,
@@ -27,6 +42,7 @@ export async function POST(request: Request) {
       whatsapp_number,
       owner_access_pin,
       is_active,
+      marketing_id,
       sales_id,
       deal_amount,
       billing_type,
@@ -38,6 +54,16 @@ export async function POST(request: Request) {
         { error: 'Nama, slug, Google review URL, dan PIN owner wajib diisi.' },
         { status: 400 }
       );
+    }
+
+    // Determine marketing specialist attribution
+    let assignedSpecialistId: string | null = null;
+    if (session && session.role === 'marketing_specialist' && session.specialist_id) {
+      // Marketing specialist can only create venues attributed to themselves
+      assignedSpecialistId = session.specialist_id;
+    } else {
+      const candidate = marketing_id || sales_id;
+      assignedSpecialistId = candidate && candidate.trim() !== '' ? candidate.trim() : null;
     }
 
     const cleanBillingType = billing_type || (monthly_retainer_fee === 0 ? 'one_time' : 'subscription');
@@ -52,7 +78,8 @@ export async function POST(request: Request) {
       whatsapp_number: whatsapp_number?.trim() || undefined,
       owner_access_pin: owner_access_pin.trim(),
       is_active: is_active !== undefined ? Boolean(is_active) : true,
-      sales_id: sales_id && sales_id.trim() !== '' ? sales_id.trim() : null,
+      sales_id: assignedSpecialistId,
+      marketing_id: assignedSpecialistId,
       deal_amount: Number(deal_amount) || 0,
       billing_type: cleanBillingType,
       monthly_retainer_fee: cleanRetainer,
