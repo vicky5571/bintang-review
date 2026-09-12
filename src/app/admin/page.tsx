@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Venue, MarketingSpecialist, MarketingSpecialistSummary, PaymentConfirmation, AuthSession } from '@/lib/types';
 import { calculateProfitDistribution, calculateVenueSettlement } from '@/lib/profitSharing';
-import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock, UserPlus, Briefcase, Award, TrendingUp, Receipt, PiggyBank, Car, Building2, Percent, CheckCircle2, AlertCircle, Wallet } from 'lucide-react';
+import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock, UserPlus, Briefcase, Award, TrendingUp, Receipt, PiggyBank, Car, Building2, Percent, CheckCircle2, AlertCircle, Wallet, Star, Zap, Box, Link2, Gem, RefreshCw, Users } from 'lucide-react';
 import { AdminVenueModal } from '@/components/AdminVenueModal';
 import { AdminMarketingModal } from '@/components/AdminMarketingModal';
 import { AdminSettlementModal } from '@/components/AdminSettlementModal';
@@ -384,8 +384,18 @@ export default function AdminPage() {
               <div className={`text-lg sm:text-xl font-black ${myUnpaidHpp > 0 ? 'text-amber-600' : 'text-slate-800'}`}>
                 Rp {myUnpaidHpp.toLocaleString('id-ID')}
               </div>
-              <p className="text-[10px] text-slate-500 mt-1">
-                {myUnpaidHpp > 0 ? '⏳ Menunggu reimbursement platform' : '✓ Tidak ada modal nunggak'}
+              <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                {myUnpaidHpp > 0 ? (
+                  <>
+                    <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+                    <span>Menunggu reimbursement platform</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span>Tidak ada modal nunggak</span>
+                  </>
+                )}
               </p>
             </div>
 
@@ -399,8 +409,18 @@ export default function AdminPage() {
               <div className={`text-lg sm:text-xl font-black ${myUnpaidProfitShare > 0 ? 'text-teal-700' : 'text-slate-800'}`}>
                 Rp {myUnpaidProfitShare.toLocaleString('id-ID')}
               </div>
-              <p className="text-[10px] text-slate-500 mt-1">
-                {myUnpaidProfitShare > 0 ? '⏳ Transport flat & bagi hasil profit' : '✓ Semua keuntungan sudah cair'}
+              <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                {myUnpaidProfitShare > 0 ? (
+                  <>
+                    <Clock className="w-3 h-3 text-teal-600 shrink-0" />
+                    <span>Transport flat & bagi hasil profit</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span>Semua keuntungan sudah cair</span>
+                  </>
+                )}
               </p>
             </div>
 
@@ -497,33 +517,47 @@ export default function AdminPage() {
                         <td className="px-6 py-4">
                           <div className="space-y-1">
                             <span
-                              className={`text-xs px-2.5 py-1 rounded-full font-medium inline-block ${
+                              className={`text-[11px] px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1.5 ${
                                 v.redirect_mode === 'smart_funnel'
                                   ? 'bg-lime-50 text-lime-800 border border-lime-200/80'
                                   : 'bg-cyan-50 text-cyan-800 border border-cyan-200/80'
                               }`}
                             >
-                              {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
+                              {v.redirect_mode === 'smart_funnel' ? (
+                                <>
+                                  <Star className="w-3 h-3 text-lime-700 fill-lime-700" />
+                                  Smart Funnel
+                                </>
+                              ) : (
+                                <>
+                                  <Zap className="w-3 h-3 text-cyan-700 fill-cyan-700" />
+                                  1-Click Direct
+                                </>
+                              )}
                             </span>
                             {!v.google_review_url || v.google_review_url.trim() === '' ? (
-                              <span className="block text-[10px] text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded font-bold">
-                                📦 Stok Siap Pakai (Tanpa URL)
+                              <span className="inline-flex items-center gap-1 text-[10px] text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md font-semibold">
+                                <Box className="w-3 h-3 text-amber-700" />
+                                Stok Siap Pakai
                               </span>
                             ) : (
-                              <span className="block text-[10px] text-emerald-600 font-medium">
-                                🔗 Terhubung Google
+                              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
+                                <Link2 className="w-3 h-3 text-emerald-600" />
+                                Terhubung Google
                               </span>
                             )}
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           {v.billing_type === 'one_time' || v.monthly_retainer_fee === 0 ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-semibold border border-purple-200/80">
-                              💎 Lifetime
+                            <span className="inline-flex items-center gap-1.5 text-[11px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-semibold border border-purple-200/80">
+                              <Gem className="w-3 h-3 text-purple-600" />
+                              Lifetime
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-semibold border border-blue-200/80">
-                              🔄 Rp {(v.monthly_retainer_fee || 0).toLocaleString('id-ID')}/bln
+                            <span className="inline-flex items-center gap-1.5 text-[11px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-semibold border border-blue-200/80">
+                              <RefreshCw className="w-3 h-3 text-blue-600" />
+                              Rp {(v.monthly_retainer_fee || 0).toLocaleString('id-ID')}/bln
                             </span>
                           )}
                         </td>
@@ -581,7 +615,8 @@ export default function AdminPage() {
                             <div className="text-[10px] text-slate-400">
                               {v.hpp_bearers && v.hpp_bearers.length > 1 ? (
                                 <span className="inline-flex items-center gap-1 text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-medium border border-indigo-100">
-                                  👥 Split {v.hpp_bearers.length} Pihak
+                                  <Users className="w-3 h-3 text-indigo-600" />
+                                  Split {v.hpp_bearers.length} Pihak
                                 </span>
                               ) : v.hpp_payer === 'platform' ? (
                                 'Modal: 100% Platform'
@@ -683,8 +718,12 @@ export default function AdminPage() {
                 <tbody className="divide-y divide-slate-100">
                   {payments.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
-                        🎉 Belum ada konfirmasi pembayaran yang dikirimkan klien.
+                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                        <div className="flex flex-col items-center justify-center space-y-1.5">
+                          <Receipt className="w-7 h-7 text-slate-300" />
+                          <p className="text-xs font-medium text-slate-500">Belum ada konfirmasi pembayaran</p>
+                          <p className="text-[11px] text-slate-400">Konfirmasi pembayaran transfer dari klien akan muncul di sini.</p>
+                        </div>
                       </td>
                     </tr>
                   ) : (

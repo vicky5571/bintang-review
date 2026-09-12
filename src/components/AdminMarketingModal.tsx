@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { MarketingSpecialist } from '@/lib/types';
-import { X, UserPlus, Percent, DollarSign, Phone, Mail, KeyRound } from 'lucide-react';
+import { X, UserPlus, Percent, DollarSign, Phone, Mail, KeyRound, Info } from 'lucide-react';
 
 interface AdminMarketingModalProps {
   isOpen: boolean;
@@ -194,11 +194,14 @@ export function AdminMarketingModal({ isOpen, onClose, onSave }: AdminMarketingM
                   placeholder={formData.commission_type === 'percentage' ? '20' : '100000'}
                 />
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">
-                {formData.commission_type === 'percentage'
-                  ? `💡 Komisi ${formData.commission_rate}% dari paket Rp 599.000 = Rp ${Math.round((599000 * formData.commission_rate) / 100).toLocaleString('id-ID')}`
-                  : `💡 Komisi tetap Rp ${Number(formData.commission_rate).toLocaleString('id-ID')} tiap 1 venue yang berhasil bergabung`}
-              </p>
+              <div className="flex items-start gap-1.5 text-[11px] text-slate-500 mt-1.5">
+                <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                <span>
+                  {formData.commission_type === 'percentage'
+                    ? `Komisi ${formData.commission_rate}% dari paket Rp 599.000 = Rp ${Math.round((599000 * formData.commission_rate) / 100).toLocaleString('id-ID')}`
+                    : `Komisi tetap Rp ${Number(formData.commission_rate).toLocaleString('id-ID')} tiap 1 venue yang berhasil bergabung`}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -212,7 +215,7 @@ export function AdminMarketingModal({ isOpen, onClose, onSave }: AdminMarketingM
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition"
+              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition"
             >
               <UserPlus className="w-4 h-4" />
               Simpan Marketing Specialist

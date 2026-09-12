@@ -17,10 +17,10 @@ export function formatWhatsAppFeedbackUrl(params: {
     `*Halo Manajemen ${params.venueName}*`,
     `Saya pelanggan ingin menyampaikan kritik/saran terkait pelayanan:`,
     ``,
-    `⭐ Rating: ${params.rating}/5`,
-    params.tableNumber ? `📍 Meja: ${params.tableNumber}` : '',
-    params.customerName ? `👤 Nama: ${params.customerName}` : '',
-    `💬 Pesan:`,
+    `Rating: ${params.rating}/5`,
+    params.tableNumber ? `Meja: ${params.tableNumber}` : '',
+    params.customerName ? `Nama: ${params.customerName}` : '',
+    `Pesan:`,
     params.message,
   ].filter(Boolean);
 
@@ -100,8 +100,10 @@ export function PrivateFeedbackModal({ venue, rating, isOpen, onClose }: Private
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 animate-in slide-in-from-bottom">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🙏</span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+              <MessageSquare className="w-4 h-4 text-slate-700" />
+            </div>
             <h3 className="font-bold text-slate-800">Beri Masukan untuk Manajemen</h3>
           </div>
           <button onClick={onClose} className="p-1 rounded-full text-slate-400 hover:text-slate-600">

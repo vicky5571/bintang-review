@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Venue, MarketingSpecialistSummary, RedirectMode, FeedbackChannel, BillingType, UserRole, HppPayerType, HppBearer } from '@/lib/types';
 import { calculateProfitDistribution } from '@/lib/profitSharing';
-import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent, Trash2, PlusCircle, CheckCircle2, AlertTriangle, Users } from 'lucide-react';
+import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent, Trash2, PlusCircle, CheckCircle2, AlertTriangle, Users, Info, RefreshCw, Gem, Scale } from 'lucide-react';
 
 interface AdminVenueModalProps {
   venue: Venue | null;
@@ -455,9 +455,12 @@ export function AdminVenueModal({
               className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-mono text-xs focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
               placeholder="https://search.google.com/local/writereview?placeid=... (Kosongkan jika stok belum laku)"
             />
-            <p className="text-[10px] text-slate-400 mt-1">
-              💡 <strong>Alur Stok QR Akrilik:</strong> Anda dapat membuat QR code fisik terlebih dahulu tanpa mengisi URL. Saat stand sudah laku terjual ke klien, URL dapat diisi kapan saja melalui tombol Edit.
-            </p>
+            <div className="flex items-start gap-1.5 text-[10px] text-slate-500 mt-1.5">
+              <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+              <p>
+                <strong>Alur Stok QR Akrilik:</strong> Anda dapat membuat QR code fisik terlebih dahulu tanpa mengisi URL. Saat stand sudah laku terjual ke klien, URL dapat diisi kapan saja melalui tombol Edit.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -525,7 +528,8 @@ export function AdminVenueModal({
                   }`}
                 >
                   <span className="text-xs font-bold flex items-center gap-1.5">
-                    🔄 Langganan Bulanan
+                    <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
+                    Langganan Bulanan
                   </span>
                   <span className="text-[11px] text-slate-500 mt-0.5">Biaya setup + iuran retainer</span>
                 </button>
@@ -540,7 +544,8 @@ export function AdminVenueModal({
                   }`}
                 >
                   <span className="text-xs font-bold flex items-center gap-1.5">
-                    💎 Sekali Bayar (Lifetime)
+                    <Gem className="w-3.5 h-3.5 text-purple-600" />
+                    Sekali Bayar (Lifetime)
                   </span>
                   <span className="text-[11px] text-slate-500 mt-0.5">Sekali bayar, aktif selamanya tanpa iuran</span>
                 </button>
@@ -796,11 +801,11 @@ export function AdminVenueModal({
                                 onChange={(e) => handleBearerSelectionChange(index, e.target.value)}
                                 className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-800 focus:bg-white focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 focus:outline-none"
                               >
-                                <option value="platform">🏢 Kas Platform / Agency</option>
+                                <option value="platform">[Platform] Kas Agency</option>
                                 <optgroup label="Marketing Specialist">
                                   {marketingSpecialists.map((m) => (
                                     <option key={m.id} value={m.id}>
-                                      👤 {m.name}
+                                      [Specialist] {m.name}
                                     </option>
                                   ))}
                                 </optgroup>
@@ -849,10 +854,11 @@ export function AdminVenueModal({
                       <button
                         type="button"
                         onClick={handleEvenSplit}
-                        className="px-2.5 py-1 bg-indigo-100/70 hover:bg-indigo-200/70 text-[11px] font-bold rounded-lg text-indigo-800 transition shadow-sm"
+                        className="px-2.5 py-1 bg-indigo-100/70 hover:bg-indigo-200/70 text-[11px] font-bold rounded-lg text-indigo-800 transition shadow-sm flex items-center gap-1"
                         title="Bagi rata nominal HPP ke seluruh penanggung modal"
                       >
-                        ⚖️ Bagi Rata
+                        <Scale className="w-3.5 h-3.5 text-indigo-700" />
+                        Bagi Rata
                       </button>
                     </div>
 
@@ -898,8 +904,9 @@ export function AdminVenueModal({
                 <p className="text-[10px] text-slate-400 mt-1">Tagihan perpanjangan rutin bulanan klien.</p>
               </div>
             ) : (
-              <div className="w-full bg-purple-50/70 border border-purple-200/80 rounded-xl p-2.5 text-[11px] text-purple-700 leading-tight">
-                ✨ <strong>Paket Lifetime</strong> — Klien bebas iuran bulanan, akrilik aktif seumur hidup.
+              <div className="w-full bg-purple-50/70 border border-purple-200/80 rounded-xl p-2.5 text-[11px] text-purple-700 leading-tight flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span><strong>Paket Lifetime</strong> — Klien bebas iuran bulanan, akrilik aktif seumur hidup.</span>
               </div>
             )}
 

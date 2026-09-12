@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Venue } from '@/lib/types';
 import { calculateProfitDistribution, calculateVenueSettlement } from '@/lib/profitSharing';
-import { X, CheckCircle2, DollarSign, Send, ArrowRight, Loader2, AlertCircle, Percent, Briefcase, Building2, Users } from 'lucide-react';
+import { X, CheckCircle2, DollarSign, Send, ArrowRight, Loader2, AlertCircle, Percent, Briefcase, Building2, Users, User } from 'lucide-react';
 
 interface AdminSettlementModalProps {
   venue: Venue | null;
@@ -109,7 +109,12 @@ export function AdminSettlementModal({
               {dist.bearers_summary.map((b, idx) => (
                 <div key={b.bearer.id || idx} className="p-2 bg-white/90 rounded-xl border border-indigo-100 flex items-center justify-between text-[11px]">
                   <span className="text-slate-700 font-medium flex items-center gap-1.5">
-                    {b.bearer.type === 'platform' ? '🏢' : '👤'} {b.bearer.name}
+                    {b.bearer.type === 'platform' ? (
+                      <Building2 className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                    ) : (
+                      <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    )}
+                    <span>{b.bearer.name}</span>
                   </span>
                   <span className="font-bold text-slate-800">
                     Rp {b.amount.toLocaleString('id-ID')} ({b.ratio.toFixed(1)}%)
@@ -151,8 +156,9 @@ export function AdminSettlementModal({
               {marketingBearers.map((item) => (
                 <div key={item.bearer.id} className="p-2.5 bg-white rounded-xl border border-slate-200/70 shadow-xs space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
-                      👤 {item.bearer.name}
+                    <span className="font-bold text-slate-800 text-[11px] flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      {item.bearer.name}
                     </span>
                     <span className="text-[10px] font-bold text-slate-500">
                       Total Hak: Rp {(item.reimburse + item.profit_share).toLocaleString('id-ID')}
@@ -239,11 +245,11 @@ export function AdminSettlementModal({
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-medium text-slate-700 focus:outline-none focus:border-[#84cc16]"
               >
                 <option value="all">
-                  👥 Semua Marketing Specialist Sekaligus (Total Rp {dist.marketing_total_payout.toLocaleString('id-ID')})
+                  Semua Marketing Specialist Sekaligus (Total Rp {dist.marketing_total_payout.toLocaleString('id-ID')})
                 </option>
                 {marketingBearers.map((b) => (
                   <option key={b.bearer.id} value={b.bearer.id}>
-                    👤 {b.bearer.name} (Total Rp {(b.reimburse + b.profit_share).toLocaleString('id-ID')})
+                    {b.bearer.name} (Total Rp {(b.reimburse + b.profit_share).toLocaleString('id-ID')})
                   </option>
                 ))}
               </select>

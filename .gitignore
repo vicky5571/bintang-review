@@ -62,6 +62,7 @@ Thumbs.db
 .vercel/
 *.tmp
 *.temp
+*.tsbuildinfo
 scratch/
 
 # Added by ggshield

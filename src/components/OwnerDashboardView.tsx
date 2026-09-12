@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Venue, VenueAnalytics, FeedbackMessage } from '@/lib/types';
-import { Star, MessageCircle, BarChart3, ShieldCheck, PhoneCall, CreditCard, Sparkles, CheckCircle } from 'lucide-react';
+import { Star, MessageCircle, BarChart3, ShieldCheck, PhoneCall, CreditCard, Sparkles, CheckCircle, Gem, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
 
 interface OwnerDashboardViewProps {
@@ -53,8 +53,9 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400 font-medium">Model Lisensi:</span>
-                  <span className="text-[11px] bg-purple-500/20 text-purple-300 px-2.5 py-0.5 rounded-full font-semibold border border-purple-500/30">
-                    💎 Sekali Bayar (Lifetime)
+                  <span className="text-[11px] bg-purple-500/20 text-purple-300 px-2.5 py-0.5 rounded-full font-semibold border border-purple-500/30 inline-flex items-center gap-1.5">
+                    <Gem className="w-3 h-3 text-purple-300" />
+                    Sekali Bayar (Lifetime)
                   </span>
                 </div>
                 <p className="text-xs text-slate-300 font-medium mt-1">
@@ -76,15 +77,18 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400 font-medium">Status Langganan Retainer:</span>
                   {activeVenue.subscription_status === 'pending_verification' ? (
-                    <span className="text-[11px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full font-semibold border border-amber-500/30 animate-pulse">
-                      ⏳ Verifikasi Pembayaran Diproses
+                    <span className="text-[11px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full font-semibold border border-amber-500/30 inline-flex items-center gap-1.5 animate-pulse">
+                      <Clock className="w-3 h-3 text-amber-300" />
+                      Verifikasi Pembayaran Diproses
                     </span>
                   ) : activeVenue.subscription_status === 'expired' ? (
-                    <span className="text-[11px] bg-rose-500/20 text-rose-300 px-2.5 py-0.5 rounded-full font-semibold border border-rose-500/30">
-                      ⚠️ Masa Aktif Berakhir
+                    <span className="text-[11px] bg-rose-500/20 text-rose-300 px-2.5 py-0.5 rounded-full font-semibold border border-rose-500/30 inline-flex items-center gap-1.5">
+                      <AlertTriangle className="w-3 h-3 text-rose-300" />
+                      Masa Aktif Berakhir
                     </span>
                   ) : (
-                    <span className="text-[11px] bg-emerald-500/20 text-[#00c48c] px-2.5 py-0.5 rounded-full font-semibold border border-emerald-500/30">
+                    <span className="text-[11px] bg-emerald-500/20 text-[#00c48c] px-2.5 py-0.5 rounded-full font-semibold border border-emerald-500/30 inline-flex items-center gap-1.5">
+                      <CheckCircle className="w-3 h-3 text-emerald-400" />
                       Aktif
                     </span>
                   )}
@@ -154,8 +158,12 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
 
           <div className="divide-y divide-slate-100">
             {feedbacks.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 text-sm">
-                🎉 Belum ada keluhan atau ulasan negatif. Pelayanan Anda luar biasa!
+              <div className="py-12 text-center text-slate-400 text-sm space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                </div>
+                <p className="font-medium text-slate-700">Belum ada keluhan atau ulasan negatif.</p>
+                <p className="text-xs text-slate-400">Pelayanan kafe Anda berjalan prima dan optimal.</p>
               </div>
             ) : (
               feedbacks.map((item) => (

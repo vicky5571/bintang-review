@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { dataStore } from '@/lib/store';
 import { FunnelRating } from '@/components/FunnelRating';
+import { Coffee, Box } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -13,8 +14,10 @@ export default async function CustomerTapPage({ params }: PageProps) {
   if (!venue || !venue.is_active) {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
-        <div className="max-w-md w-full bg-white p-6 rounded-2xl shadow-md text-center">
-          <div className="text-4xl mb-3">☕</div>
+        <div className="max-w-md w-full bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mx-auto mb-3">
+            <Coffee className="w-6 h-6" />
+          </div>
           <h1 className="text-lg font-bold text-slate-800">Layanan Sedang Diperbarui</h1>
           <p className="text-sm text-slate-500 mt-1">
             Silakan hubungi kasir atau staf cafe untuk informasi lebih lanjut.
@@ -28,10 +31,9 @@ export default async function CustomerTapPage({ params }: PageProps) {
   if (!venue.google_review_url || venue.google_review_url.trim() === '') {
     return (
       <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[350px] bg-gradient-to-r from-lime-200/30 via-emerald-200/20 to-cyan-200/30 blur-3xl -z-10 pointer-events-none rounded-full" />
-        <div className="max-w-md w-full bg-white p-7 sm:p-8 rounded-3xl shadow-xl border border-slate-100 text-center space-y-4">
-          <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-100 to-amber-50 text-amber-600 flex items-center justify-center mx-auto text-3xl shadow-sm border border-amber-200/60">
-            📦
+        <div className="max-w-md w-full bg-white p-7 sm:p-8 rounded-3xl shadow-lg border border-slate-200/80 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mx-auto shadow-xs border border-amber-200/80">
+            <Box className="w-7 h-7" />
           </div>
           <div className="space-y-1.5">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide uppercase text-amber-800 bg-amber-100/80 px-3 py-1 rounded-full border border-amber-200/80">
@@ -64,7 +66,7 @@ export default async function CustomerTapPage({ params }: PageProps) {
           <div className="pt-2 space-y-2">
             <a
               href={`/portal/${venue.slug}`}
-              className="inline-flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 hover:opacity-95 transition active:scale-[0.98]"
+              className="inline-flex items-center justify-center w-full px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-[0.98]"
             >
               Aktivasi di Portal Pemilik
             </a>
@@ -75,10 +77,7 @@ export default async function CustomerTapPage({ params }: PageProps) {
         </div>
 
         <footer className="text-center mt-8 text-xs text-slate-400">
-          Didukung oleh{' '}
-          <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">
-            Bintang Review
-          </span>
+          Didukung oleh <span className="font-semibold text-slate-700">Bintang Review</span>
         </footer>
       </main>
     );
@@ -97,16 +96,10 @@ export default async function CustomerTapPage({ params }: PageProps) {
 
   // Smart Funnel Mode
   return (
-    <main className="min-h-screen bg-white relative overflow-hidden flex flex-col justify-center px-4 py-12">
-      {/* Background Soft Glows */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[350px] bg-gradient-to-r from-lime-200/25 via-emerald-200/15 to-cyan-200/25 blur-3xl -z-10 pointer-events-none rounded-full" />
-
+    <main className="min-h-screen bg-slate-50/50 flex flex-col justify-center px-4 py-12">
       <FunnelRating venue={venue} />
       <footer className="text-center mt-12 text-xs text-slate-400">
-        Didukung oleh{' '}
-        <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">
-          Bintang Review
-        </span>
+        Didukung oleh <span className="font-semibold text-slate-700">Bintang Review</span>
       </footer>
     </main>
   );
