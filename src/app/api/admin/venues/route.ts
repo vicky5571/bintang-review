@@ -5,6 +5,12 @@ import { getSessionFromRequest } from '@/lib/auth';
 export async function GET(request: Request) {
   try {
     const session = getSessionFromRequest(request);
+    if (session && session.role === 'owner') {
+      return NextResponse.json(
+        { error: 'Akses ditolak. Silakan gunakan portal owner kafe Anda.' },
+        { status: 403 }
+      );
+    }
     let specialistFilter: string | undefined = undefined;
 
     const { searchParams } = new URL(request.url);
@@ -31,6 +37,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = getSessionFromRequest(request);
+    if (session && session.role === 'owner') {
+      return NextResponse.json(
+        { error: 'Akses ditolak. Owner kafe tidak diizinkan mengubah konfigurasi admin.' },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     const {
       id,

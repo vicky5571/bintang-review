@@ -276,6 +276,31 @@ export class InMemoryStore {
     return found ? { ...found } : null;
   }
 
+  async getVenueByOwnerCredentials(
+    identifier: string,
+    pin: string
+  ): Promise<Venue | null> {
+    const rawId = identifier.trim().toLowerCase();
+    const cleanDigits = rawId.replace(/\D/g, '');
+    const normalized62 = cleanDigits.startsWith('0') ? '62' + cleanDigits.slice(1) : cleanDigits;
+    const normalized0 = cleanDigits.startsWith('62') ? '0' + cleanDigits.slice(2) : cleanDigits;
+
+    const found = this.venues.find((v) => {
+      const vPhoneDigits = (v.whatsapp_number || '').replace(/\D/g, '');
+      const matchPhone = cleanDigits.length >= 7 && (
+        vPhoneDigits === cleanDigits ||
+        vPhoneDigits === normalized62 ||
+        vPhoneDigits === normalized0
+      );
+      const matchSlug = v.slug.toLowerCase() === rawId;
+      const matchEmail = Boolean(v.feedback_email && v.feedback_email.toLowerCase() === rawId);
+      const matchPin = v.owner_access_pin && v.owner_access_pin.trim() === pin.trim();
+
+      return (matchPhone || matchSlug || matchEmail) && matchPin && v.is_active;
+    });
+    return found ? { ...found } : null;
+  }
+
   async submitPaymentConfirmation(
     data: Omit<PaymentConfirmation, 'id' | 'status' | 'created_at' | 'verified_at' | 'verified_notes'>
   ): Promise<PaymentConfirmation> {
@@ -905,6 +930,44 @@ class StoreRepository {
       }
     }
     return this.inMemory.getMarketingSpecialistByCredentials(identifier, pin);
+  }
+
+  async getVenueByOwnerCredentials(
+    identifier: string,
+    pin: string
+  ): Promise<Venue | null> {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
+      try {
+        const rawId = identifier.trim().toLowerCase();
+        const cleanDigits = rawId.replace(/\D/g, '');
+        const normalized62 = cleanDigits.startsWith('0') ? '62' + cleanDigits.slice(1) : cleanDigits;
+        const normalized0 = cleanDigits.startsWith('62') ? '0' + cleanDigits.slice(2) : cleanDigits;
+
+        const { data: venues } = await client.from('venues').select('*').eq('is_active', true);
+        if (venues && venues.length > 0) {
+          const matched = venues.find((v: any) => {
+            const vPhoneDigits = (v.whatsapp_number || '').replace(/\D/g, '');
+            const matchPhone = cleanDigits.length >= 7 && (
+              vPhoneDigits === cleanDigits ||
+              vPhoneDigits === normalized62 ||
+              vPhoneDigits === normalized0
+            );
+            const matchSlug = v.slug && v.slug.toLowerCase() === rawId;
+            const matchEmail = Boolean(v.feedback_email && v.feedback_email.toLowerCase() === rawId);
+            const matchPin = v.owner_access_pin && v.owner_access_pin.trim() === pin.trim();
+
+            return (matchPhone || matchSlug || matchEmail) && matchPin;
+          });
+          if (matched) {
+            return matched as Venue;
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase getVenueByOwnerCredentials error, using fallback:', err);
+      }
+    }
+    return this.inMemory.getVenueByOwnerCredentials(identifier, pin);
   }
 
   async submitPaymentConfirmation(

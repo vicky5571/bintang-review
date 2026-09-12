@@ -107,7 +107,6 @@ export function CurrencyInput({
         <input
           type="text"
           inputMode="numeric"
-          pattern="[0-9]*"
           required={required}
           disabled={disabled}
           value={displayValue}

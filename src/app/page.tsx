@@ -25,8 +25,15 @@ export default function HomePage() {
 
         <nav className="flex items-center gap-3">
           <Link
+            href="/login"
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] text-white transition shadow-sm active:scale-95 flex items-center gap-1.5"
+          >
+            <Store className="w-3.5 h-3.5" />
+            Login Portal
+          </Link>
+          <Link
             href="/admin"
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white transition shadow-sm active:scale-95"
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition active:scale-95"
           >
             Super Admin
           </Link>
@@ -52,22 +59,24 @@ export default function HomePage() {
           Pelanggan cukup tap meja dengan smartphone. Ulasan positif langsung mengalir ke Google Maps, ulasan negatif disaring secara privat ke WhatsApp manajemen.
         </p>
 
-        {/* Demo Action Buttons */}
+        {/* Hero Action Buttons - Login is Primary */}
         <div className="pt-4 flex flex-wrap items-center justify-center gap-4">
           <Link
-            href="/r/kopi-senja"
-            target="_blank"
-            className="px-6 py-3.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white font-bold rounded-2xl flex items-center gap-2 shadow-lg shadow-emerald-500/20 hover:shadow-cyan-500/25 transition active:scale-95 text-sm"
+            href="/login"
+            className="px-8 py-4 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white font-black rounded-2xl flex items-center gap-2.5 shadow-xl shadow-emerald-500/25 hover:shadow-cyan-500/30 transition active:scale-95 text-base group"
           >
-            <Smartphone className="w-4 h-4" /> Simulasi Tap Pelanggan (/r/kopi-senja)
+            <Store className="w-5 h-5 text-white" />
+            <span>Masuk ke Portal Owner</span>
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </Link>
 
           <Link
-            href="/portal/kopi-senja"
+            href="/r/kopi-senja"
             target="_blank"
-            className="px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-2xl flex items-center gap-2 border border-slate-200 shadow-sm transition active:scale-95 text-sm"
+            className="px-6 py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl flex items-center gap-2 shadow-lg shadow-slate-900/15 transition active:scale-95 text-sm"
           >
-            <Store className="w-4 h-4 text-[#06b6d4]" /> Buka Owner Portal (PIN: 1234)
+            <Smartphone className="w-4 h-4 text-lime-400" />
+            <span>Simulasi Tap Pelanggan (/r/kopi-senja)</span>
           </Link>
         </div>
       </div>

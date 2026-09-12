@@ -56,7 +56,7 @@ export function AdminVenueModal({
     whatsapp_number: '',
     owner_access_pin: '1234',
     marketing_id: '',
-    deal_amount: 599000,
+    deal_amount: 0,
     hpp: 150000,
     hpp_payer: 'marketing',
     hpp_marketing_ratio: 100,
@@ -180,7 +180,7 @@ export function AdminVenueModal({
         whatsapp_number: venue.whatsapp_number || '',
         owner_access_pin: venue.owner_access_pin,
         marketing_id: isMarketingSpecialistRole ? (currentSpecialistId || '') : (venue.marketing_id || venue.sales_id || ''),
-        deal_amount: venue.deal_amount !== undefined ? Number(venue.deal_amount) : 599000,
+        deal_amount: venue.deal_amount !== undefined && venue.deal_amount !== null ? Number(venue.deal_amount) : 0,
         hpp: hppVal,
         hpp_payer: payer,
         hpp_marketing_ratio: venue.hpp_marketing_ratio !== undefined ? Number(venue.hpp_marketing_ratio) : 100,
@@ -204,7 +204,7 @@ export function AdminVenueModal({
         whatsapp_number: '',
         owner_access_pin: '1234',
         marketing_id: defaultMarketingId,
-        deal_amount: 599000,
+        deal_amount: 0,
         hpp: initialHpp,
         hpp_payer: 'marketing',
         hpp_marketing_ratio: 100,
@@ -240,9 +240,18 @@ export function AdminVenueModal({
         cleanReviewUrl = `https://${cleanReviewUrl}`;
       }
       const isActive = Boolean(cleanReviewUrl);
+
+      // Validasi: Jika QR code diaktifkan, harga jual ke klien wajib diisi
+      if (isActive && (!formData.deal_amount || Number(formData.deal_amount) <= 0)) {
+        setErrorMsg('Harga jual ke klien wajib diisi jika QR code diaktifkan.');
+        setIsSubmitting(false);
+        return;
+      }
+
       await onSave({
         ...(venue?.id ? { id: venue.id } : {}),
         ...formData,
+        deal_amount: Number(formData.deal_amount) || 0,
         google_review_url: cleanReviewUrl,
         is_active: isActive,
         sales_id: formData.marketing_id,
@@ -254,6 +263,7 @@ export function AdminVenueModal({
     }
   };
 
+  const isQrActive = Boolean((formData.google_review_url || '').trim());
   const currentSpecialistObj = marketingSpecialists.find((m) => m.id === (currentSpecialistId || formData.marketing_id));
 
   const totalAllocated = (formData.hpp_bearers || []).reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
@@ -654,20 +664,8 @@ export function AdminVenueModal({
               </div>
             </div>
 
-            {/* Financials: Harga Jual & HPP Per Transaksi */}
+            {/* Financials: HPP & Harga Jual Per Transaksi */}
             <div className="grid grid-cols-2 gap-3">
-              <CurrencyInput
-                label="Harga Jual ke Klien (Rp)"
-                required
-                value={formData.deal_amount}
-                onChange={(val) => setFormData({ ...formData, deal_amount: val })}
-                placeholder="599.000"
-                presets={[399000, 499000, 599000, 799000]}
-                showTerbilang
-                colorScheme="lime"
-                helpText="Nilai total closing deal penjualan stand."
-              />
-
               <CurrencyInput
                 label="HPP / Modal Produksi (Rp)"
                 required
@@ -678,6 +676,22 @@ export function AdminVenueModal({
                 showTerbilang
                 colorScheme="amber"
                 helpText="Biaya cetak akrilik, chip NFC & packing unit."
+              />
+
+              <CurrencyInput
+                label={isQrActive ? 'Harga Jual ke Klien (Rp)' : 'Harga Jual ke Klien (Rp) — Opsional'}
+                required={isQrActive}
+                value={formData.deal_amount}
+                onChange={(val) => setFormData({ ...formData, deal_amount: val })}
+                placeholder={isQrActive ? '599.000' : '0 (Opsional jika stok)'}
+                presets={[399000, 499000, 599000, 799000]}
+                showTerbilang={formData.deal_amount > 0}
+                colorScheme="lime"
+                helpText={
+                  isQrActive
+                    ? 'Nilai total closing deal penjualan stand ke klien.'
+                    : 'Opsional jika QR belum diaktifkan (stok fisik).'
+                }
               />
             </div>
 
@@ -692,25 +706,46 @@ export function AdminVenueModal({
                     Margin Kotor Unit (Gross Profit)
                   </span>
                   <span className="text-[10px] text-slate-500">
-                    Harga Jual (Rp {formData.deal_amount.toLocaleString('id-ID')}) − HPP (Rp {formData.hpp.toLocaleString('id-ID')})
+                    {formData.deal_amount > 0 ? (
+                      <>
+                        Harga Jual (Rp {formData.deal_amount.toLocaleString('id-ID')}) − HPP (Rp {formData.hpp.toLocaleString('id-ID')})
+                      </>
+                    ) : (
+                      <>
+                        HPP Modal: Rp {formData.hpp.toLocaleString('id-ID')} • Harga jual belum diisi (stok fisik)
+                      </>
+                    )}
                   </span>
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-black text-emerald-700 text-sm">
-                  Rp {Math.max(0, formData.deal_amount - formData.hpp).toLocaleString('id-ID')}
-                </div>
-                <span
-                  className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                    formData.deal_amount > 0 && ((formData.deal_amount - formData.hpp) / formData.deal_amount) >= 0.5
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                      : formData.deal_amount > 0 && ((formData.deal_amount - formData.hpp) / formData.deal_amount) >= 0.2
-                      ? 'bg-amber-100 text-amber-800 border-amber-300'
-                      : 'bg-rose-100 text-rose-800 border-rose-300'
-                  }`}
-                >
-                  Margin {formData.deal_amount > 0 ? Math.round(((formData.deal_amount - formData.hpp) / formData.deal_amount) * 100) : 0}%
-                </span>
+                {formData.deal_amount > 0 ? (
+                  <>
+                    <div className="font-black text-emerald-700 text-sm">
+                      Rp {Math.max(0, formData.deal_amount - formData.hpp).toLocaleString('id-ID')}
+                    </div>
+                    <span
+                      className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                        ((formData.deal_amount - formData.hpp) / formData.deal_amount) >= 0.5
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : ((formData.deal_amount - formData.hpp) / formData.deal_amount) >= 0.2
+                          ? 'bg-amber-100 text-amber-800 border-amber-300'
+                          : 'bg-rose-100 text-rose-800 border-rose-300'
+                      }`}
+                    >
+                      Margin {Math.round(((formData.deal_amount - formData.hpp) / formData.deal_amount) * 100)}%
+                    </span>
+                  </>
+                ) : (
+                  <div>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border bg-amber-50 text-amber-800 border-amber-300">
+                      Stok Belum Terjual
+                    </span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">
+                      Margin dihitung saat aktif
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

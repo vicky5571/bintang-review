@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Venue, VenueAnalytics, FeedbackMessage } from '@/lib/types';
-import { Star, MessageCircle, BarChart3, ShieldCheck, PhoneCall, CreditCard, Sparkles, CheckCircle, Gem, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Star, MessageCircle, BarChart3, ShieldCheck, PhoneCall, CreditCard, Sparkles, CheckCircle, Gem, Clock, AlertTriangle, CheckCircle2, LogOut } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
 
 interface OwnerDashboardViewProps {
@@ -36,9 +36,23 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
             </span>
           </div>
         </div>
-        <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-medium border border-slate-200/60">
-          Read-Only Portal
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-medium border border-slate-200/60">
+            Read-Only Portal
+          </span>
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch('/api/auth/me', { method: 'POST' });
+              window.location.href = '/login';
+            }}
+            className="text-xs text-slate-400 hover:text-rose-600 px-2.5 py-1 rounded-xl font-medium transition flex items-center gap-1 hover:bg-rose-50"
+            title="Keluar dari sesi portal"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Keluar
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}

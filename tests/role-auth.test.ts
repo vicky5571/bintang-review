@@ -140,7 +140,7 @@ describe('Role-Based Authentication & Marketing Specialist Isolation', () => {
     expect(postBody.marketingSpecialist.access_pin).toBe('8888');
 
     // List specialists
-    const getRes = await specialistsGet();
+    const getRes = await specialistsGet(new Request('http://localhost:3000/api/admin/marketing-specialists'));
     expect(getRes.status).toBe(200);
     const getBody = await getRes.json();
     expect(getBody.marketingSpecialists.length).toBeGreaterThanOrEqual(2);

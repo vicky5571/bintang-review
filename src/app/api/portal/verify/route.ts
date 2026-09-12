@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { dataStore } from '@/lib/store';
 import { portalPinLimiter, getClientIp } from '@/lib/rateLimit';
+import { getSessionFromRequest, SESSION_COOKIE_NAME } from '@/lib/auth';
 
-// GET: Returns only public presentation info (name, logo) without sensitive data
+// GET: Returns public info or full data if owner is already logged in
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -23,9 +24,33 @@ export async function GET(request: Request) {
       );
     }
 
+    // Check if user already has an active authenticated session for this venue
+    const session = getSessionFromRequest(request);
+    const isAuthorized = session?.authenticated && (
+      session.role === 'super_admin' ||
+      (session.role === 'owner' && (session.venue_slug === venue.slug || session.venue_id === venue.id))
+    );
+
+    if (isAuthorized) {
+      const [analytics, feedbacks] = await Promise.all([
+        dataStore.getVenueAnalytics(venue.id),
+        dataStore.listFeedback(venue.id),
+      ]);
+      const { owner_access_pin: _, ...sanitizedVenue } = venue;
+      return NextResponse.json({
+        name: venue.name,
+        logo_url: venue.logo_url,
+        authenticated: true,
+        venue: sanitizedVenue,
+        analytics,
+        feedbacks,
+      });
+    }
+
     return NextResponse.json({
       name: venue.name,
       logo_url: venue.logo_url,
+      authenticated: false,
     });
   } catch (error) {
     console.error('Portal public info error:', error);
@@ -106,12 +131,30 @@ export async function POST(request: Request) {
     // Strip sensitive fields (owner_access_pin) from response payload
     const { owner_access_pin: _, ...sanitizedVenue } = venue;
 
-    return NextResponse.json({
+    const sessionData = {
+      authenticated: true,
+      role: 'owner',
+      venue_id: venue.id,
+      venue_slug: venue.slug,
+      name: venue.name,
+      phone_whatsapp: venue.whatsapp_number,
+      email: venue.feedback_email,
+    };
+    const sessionValue = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+
+    const response = NextResponse.json({
       success: true,
       venue: sanitizedVenue,
       analytics,
       feedbacks,
     });
+
+    response.headers.append(
+      'Set-Cookie',
+      `${SESSION_COOKIE_NAME}=${sessionValue}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`
+    );
+
+    return response;
   } catch (error) {
     console.error('Portal verify error:', error);
     return NextResponse.json(

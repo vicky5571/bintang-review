@@ -297,4 +297,53 @@ describe('Admin Management & Auth Operations', () => {
     expect(updateBody.venue.google_review_url).toBe('https://search.google.com/local/writereview?placeid=ChIJ1234567890');
     expect(updateBody.venue.name).toBe('Kafe Kenangan Manis (Eks Stand 101)');
   });
+
+  it('should allow creating unactivated stock stand with deal_amount omitted or zero, and update with deal_amount upon QR activation', async () => {
+    // 1. Create stock stand without google_review_url and without deal_amount (selling price not set yet)
+    const createReq = new Request('http://localhost:3000/api/admin/venues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Stok Stand Batch #202',
+        slug: 'stand-batch-202',
+        owner_access_pin: '1234',
+        google_review_url: '', // Unactivated QR
+        deal_amount: 0, // Not required / not set yet
+        hpp: 150000,
+      }),
+    });
+
+    const createRes = await venuesPost(createReq);
+    expect(createRes.status).toBe(200);
+
+    const createBody = await createRes.json();
+    expect(createBody.success).toBe(true);
+    expect(createBody.venue.deal_amount).toBe(0);
+    expect(createBody.venue.hpp).toBe(150000);
+    expect(createBody.venue.is_active).toBe(false);
+
+    // 2. Later, when QR is activated and sold to client, set review URL and deal_amount
+    const activateReq = new Request('http://localhost:3000/api/admin/venues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: createBody.venue.id,
+        name: 'Kafe Kenanga Indah',
+        slug: 'stand-batch-202',
+        owner_access_pin: '1234',
+        google_review_url: 'https://search.google.com/local/writereview?placeid=ChIJ987654321',
+        deal_amount: 599000,
+        hpp: 150000,
+      }),
+    });
+
+    const activateRes = await venuesPost(activateReq);
+    expect(activateRes.status).toBe(200);
+
+    const activateBody = await activateRes.json();
+    expect(activateBody.success).toBe(true);
+    expect(activateBody.venue.deal_amount).toBe(599000);
+    expect(activateBody.venue.is_active).toBe(true);
+    expect(activateBody.venue.google_review_url).toBe('https://search.google.com/local/writereview?placeid=ChIJ987654321');
+  });
 });

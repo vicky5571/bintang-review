@@ -26,6 +26,12 @@ export default function OwnerPortalPage() {
         if (res.ok) {
           const data = await res.json();
           setVenueName(data.name || slug);
+          if (data.authenticated && data.venue && data.analytics) {
+            setVenue(data.venue);
+            setAnalytics(data.analytics);
+            setFeedbacks(data.feedbacks || []);
+            setIsAuthenticated(true);
+          }
         } else if (res.status === 404) {
           setNotFound(true);
         }

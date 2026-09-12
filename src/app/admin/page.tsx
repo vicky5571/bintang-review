@@ -59,6 +59,12 @@ export default function AdminPage() {
       const res = await fetch('/api/auth/me');
       const data = await res.json();
       if (data.authenticated && data.user) {
+        if (data.user.role === 'owner') {
+          // Cafe owner must never access admin portal -> redirect to their read-only portal
+          const targetUrl = data.user.venue_slug ? `/portal/${data.user.venue_slug}` : '/login';
+          window.location.href = targetUrl;
+          return;
+        }
         setIsAuthenticated(true);
         setCurrentUser(data.user);
         await loadData(data.user);
@@ -194,6 +200,11 @@ export default function AdminPage() {
     return (
       <AdminLoginModal
         onSuccess={(user) => {
+          if (user?.role === 'owner') {
+            const targetUrl = user.venue_slug ? `/portal/${user.venue_slug}` : '/login';
+            window.location.href = targetUrl;
+            return;
+          }
           if (user && user.role) {
             setIsAuthenticated(true);
             setCurrentUser(user);
@@ -476,7 +487,7 @@ export default function AdminPage() {
                   <th className="px-6 py-3.5">Slug & Tap Link</th>
                   <th className="px-6 py-3.5">Mode</th>
                   <th className="px-6 py-3.5">Paket</th>
-                  <th className="px-6 py-3.5">Harga Jual {isSuperAdmin ? '& HPP' : ''}</th>
+                  <th className="px-6 py-3.5">{isSuperAdmin ? 'HPP & Harga Jual' : 'Harga Jual'}</th>
                   <th className="px-6 py-3.5">Pelunasan Payout (Opsi B)</th>
                   <th className="px-6 py-3.5">PIN Owner</th>
                   <th className="px-6 py-3.5">Status</th>
@@ -519,74 +530,81 @@ export default function AdminPage() {
                               </span>
                             )}
                           </div>
+                          <span className="text-xs text-slate-400 font-mono">PIN: {v.owner_access_pin}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <a
-                            href={`/r/${v.slug}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-cyan-600 hover:text-cyan-700 font-mono text-xs flex items-center gap-1 hover:underline"
-                          >
-                            /r/{v.slug} <ExternalLink className="w-3 h-3" />
-                          </a>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="space-y-1">
-                            <span
-                              className={`text-[11px] px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1.5 ${
-                                v.redirect_mode === 'smart_funnel'
-                                  ? 'bg-lime-50 text-lime-800 border border-lime-200/80'
-                                  : 'bg-cyan-50 text-cyan-800 border border-cyan-200/80'
-                              }`}
+                          <div className="flex items-center gap-2">
+                            <code className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-700 font-mono">
+                              /r/{v.slug}
+                            </code>
+                            <a
+                              href={`/r/${v.slug}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-slate-400 hover:text-cyan-600 transition"
+                              title="Buka Halaman Tap Pelanggan"
                             >
-                              {v.redirect_mode === 'smart_funnel' ? (
-                                <>
-                                  <Star className="w-3 h-3 text-lime-700 fill-lime-700" />
-                                  Smart Funnel
-                                </>
-                              ) : (
-                                <>
-                                  <Zap className="w-3 h-3 text-cyan-700 fill-cyan-700" />
-                                  1-Click Direct
-                                </>
-                              )}
-                            </span>
-                            {!v.google_review_url || v.google_review_url.trim() === '' ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md font-semibold">
-                                <Box className="w-3 h-3 text-amber-700" />
-                                Stok Belum Diaktivasi
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
-                                <Link2 className="w-3 h-3 text-emerald-600" />
-                                Terhubung Google
-                              </span>
-                            )}
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          {v.billing_type === 'one_time' || v.monthly_retainer_fee === 0 ? (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-semibold border border-purple-200/80">
-                              <Gem className="w-3 h-3 text-purple-600" />
-                              Lifetime
-                            </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+                            v.redirect_mode === 'smart_funnel'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}>
+                            {v.redirect_mode === 'smart_funnel' ? 'Smart Funnel' : 'Direct'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {v.billing_type === 'one_time' ? (
+                            <div>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                                <Gem className="w-3 h-3 text-purple-600" />
+                                Lifetime
+                              </span>
+                              <span className="text-[10px] text-slate-400 block mt-0.5">Sekali Bayar</span>
+                            </div>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-semibold border border-blue-200/80">
-                              <RefreshCw className="w-3 h-3 text-blue-600" />
-                              Rp {(v.monthly_retainer_fee || 0).toLocaleString('id-ID')}/bln
-                            </span>
+                            <div>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <RefreshCw className="w-3 h-3 text-emerald-600" />
+                                Langganan
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-medium block mt-0.5">
+                                Rp {(v.monthly_retainer_fee || 149000).toLocaleString('id-ID')}/bln
+                              </span>
+                            </div>
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="font-bold text-slate-900 block">
-                            Rp {price.toLocaleString('id-ID')}
-                          </span>
-                          {isSuperAdmin ? (
-                            <span className="text-[10px] text-slate-500 block font-normal mt-0.5">
-                              HPP: Rp {cogs.toLocaleString('id-ID')} • Margin: <strong className="text-emerald-600 font-semibold">Rp {margin.toLocaleString('id-ID')}</strong>
-                            </span>
+                          {price > 0 ? (
+                            <>
+                              <span className="font-bold text-slate-900 block">
+                                Rp {price.toLocaleString('id-ID')}
+                              </span>
+                              {isSuperAdmin ? (
+                                <span className="text-[10px] text-slate-500 block font-normal mt-0.5">
+                                  HPP: Rp {cogs.toLocaleString('id-ID')} • Margin: <strong className="text-emerald-600 font-semibold">Rp {margin.toLocaleString('id-ID')}</strong>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 block font-normal">Harga Jual Unit</span>
+                              )}
+                            </>
                           ) : (
-                            <span className="text-[10px] text-slate-400 block font-normal">Harga Jual Unit</span>
+                            <>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                Belum diisi (Stok)
+                              </span>
+                              {isSuperAdmin ? (
+                                <span className="text-[10px] text-slate-500 block font-normal mt-0.5">
+                                  HPP: Rp {cogs.toLocaleString('id-ID')} • Margin: <span className="text-slate-400 italic">Menunggu Aktivasi</span>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 block font-normal">Belum Terjual</span>
+                              )}
+                            </>
                           )}
                         </td>
                         <td className="px-6 py-4">

@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
 import { dataStore } from '@/lib/store';
+import { getSessionFromRequest } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const session = getSessionFromRequest(request);
+    if (session && session.role === 'owner') {
+      return NextResponse.json(
+        { error: 'Akses ditolak.' },
+        { status: 403 }
+      );
+    }
     const list = await dataStore.listMarketingSpecialists();
     return NextResponse.json({ success: true, marketingSpecialists: list, salesAgents: list });
   } catch (error) {
@@ -16,6 +24,13 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = getSessionFromRequest(request);
+    if (session && session.role === 'owner') {
+      return NextResponse.json(
+        { error: 'Akses ditolak.' },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     const { name, phone_whatsapp, email, access_pin, commission_type, commission_rate, is_active } = body;
 

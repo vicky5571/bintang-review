@@ -124,8 +124,62 @@ export async function POST(request: Request) {
       return response;
     }
 
+    // 3. Cafe Owner Authentication
+    if (role === 'owner') {
+      if (!identifier || !pin) {
+        return NextResponse.json(
+          { error: 'Nomor WhatsApp / Slug Kafe dan PIN akses wajib diisi.' },
+          { status: 400 }
+        );
+      }
+
+      const venue = await dataStore.getVenueByOwnerCredentials(
+        identifier.trim(),
+        pin.trim()
+      );
+
+      if (!venue) {
+        adminAuthLimiter.recordFailure(ip);
+        const remaining = adminAuthLimiter.check(ip).remaining;
+        return NextResponse.json(
+          {
+            error:
+              remaining > 0
+                ? `Venue kafe tidak ditemukan atau PIN salah. Sisa ${remaining} percobaan.`
+                : 'Akses diblokir sementara karena terlalu banyak percobaan salah.',
+          },
+          { status: 401 }
+        );
+      }
+
+      adminAuthLimiter.reset(ip);
+      const sessionData = {
+        authenticated: true,
+        role: 'owner',
+        venue_id: venue.id,
+        venue_slug: venue.slug,
+        name: venue.name,
+        phone_whatsapp: venue.whatsapp_number,
+        email: venue.feedback_email,
+      };
+
+      const response = NextResponse.json({
+        success: true,
+        user: sessionData,
+        redirectUrl: `/portal/${venue.slug}`,
+      });
+
+      const sessionValue = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+      response.headers.append(
+        'Set-Cookie',
+        `${SESSION_COOKIE_NAME}=${sessionValue}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`
+      );
+
+      return response;
+    }
+
     return NextResponse.json(
-      { error: 'Peran (role) login tidak valid. Pilih Super Admin atau Marketing Specialist.' },
+      { error: 'Peran (role) login tidak valid. Pilih Owner Kafe, Marketing Specialist, atau Super Admin.' },
       { status: 400 }
     );
   } catch (error) {

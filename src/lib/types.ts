@@ -2,12 +2,14 @@ export type RedirectMode = 'smart_funnel' | 'direct_google';
 export type FeedbackChannel = 'whatsapp' | 'email' | 'both';
 export type ActionTaken = 'direct_redirect' | 'funnel_opened' | 'positive_review' | 'negative_feedback';
 
-export type UserRole = 'super_admin' | 'marketing_specialist';
+export type UserRole = 'super_admin' | 'marketing_specialist' | 'owner';
 
 export interface AuthSession {
   authenticated: boolean;
   role?: UserRole;
   specialist_id?: string;
+  venue_id?: string;
+  venue_slug?: string;
   name?: string;
   email?: string;
   phone_whatsapp?: string;

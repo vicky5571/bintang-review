@@ -2,15 +2,21 @@
 
 import React, { useState } from 'react';
 import { UserRole, AuthSession } from '@/lib/types';
-import { ShieldCheck, Briefcase, ArrowRight, Loader2, Eye, EyeOff, Phone, Lock, Sparkles } from 'lucide-react';
+import { ShieldCheck, Briefcase, Store, ArrowRight, Loader2, Eye, EyeOff, Phone, Lock, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 
 interface UnifiedLoginCardProps {
   onSuccess?: (user: AuthSession) => void;
   redirectUrl?: string;
+  defaultRole?: 'marketing_specialist' | 'super_admin';
 }
 
-export function UnifiedLoginCard({ onSuccess, redirectUrl = '/admin' }: UnifiedLoginCardProps) {
-  const [activeRole, setActiveRole] = useState<UserRole>('super_admin');
+export function UnifiedLoginCard({
+  onSuccess,
+  redirectUrl = '/admin',
+  defaultRole = 'marketing_specialist',
+}: UnifiedLoginCardProps) {
+  const [activeRole, setActiveRole] = useState<'marketing_specialist' | 'super_admin'>(defaultRole);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [identifier, setIdentifier] = useState('');
@@ -18,7 +24,7 @@ export function UnifiedLoginCard({ onSuccess, redirectUrl = '/admin' }: UnifiedL
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleRoleChange = (role: UserRole) => {
+  const handleRoleChange = (role: 'marketing_specialist' | 'super_admin') => {
     setActiveRole(role);
     setErrorMessage(null);
   };
@@ -67,6 +73,8 @@ export function UnifiedLoginCard({ onSuccess, redirectUrl = '/admin' }: UnifiedL
       } else {
         if (onSuccess) {
           onSuccess(data.user);
+        } else if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
         } else {
           window.location.href = redirectUrl;
         }
@@ -80,25 +88,12 @@ export function UnifiedLoginCard({ onSuccess, redirectUrl = '/admin' }: UnifiedL
 
   return (
     <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl p-8 text-center shadow-2xl shadow-slate-200/70 relative">
-      {/* Role Selection Tabs */}
+      {/* Role Selection Tabs: 2 Tabs (Marketing, Super Admin) */}
       <div className="grid grid-cols-2 p-1 bg-slate-100/80 rounded-2xl mb-6 border border-slate-200/60">
         <button
           type="button"
-          onClick={() => handleRoleChange('super_admin')}
-          className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-            activeRole === 'super_admin'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <ShieldCheck className={`w-3.5 h-3.5 ${activeRole === 'super_admin' ? 'text-[#10b981]' : ''}`} />
-          Super Admin
-        </button>
-
-        <button
-          type="button"
           onClick={() => handleRoleChange('marketing_specialist')}
-          className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+          className={`py-2 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
             activeRole === 'marketing_specialist'
               ? 'bg-white text-slate-900 shadow-sm'
               : 'text-slate-500 hover:text-slate-800'
@@ -107,12 +102,25 @@ export function UnifiedLoginCard({ onSuccess, redirectUrl = '/admin' }: UnifiedL
           <Briefcase className={`w-3.5 h-3.5 ${activeRole === 'marketing_specialist' ? 'text-[#06b6d4]' : ''}`} />
           Marketing Specialist
         </button>
+
+        <button
+          type="button"
+          onClick={() => handleRoleChange('super_admin')}
+          className={`py-2 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+            activeRole === 'super_admin'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <ShieldCheck className={`w-3.5 h-3.5 ${activeRole === 'super_admin' ? 'text-slate-900' : ''}`} />
+          Super Admin
+        </button>
       </div>
 
       {/* Header Icon & Title */}
-      <div className="w-14 h-14 bg-gradient-to-br from-lime-50 to-cyan-50 border border-emerald-200/60 rounded-2xl flex items-center justify-center mx-auto mb-3 text-[#84cc16] shadow-sm">
+      <div className="w-14 h-14 bg-gradient-to-br from-cyan-50 to-slate-100 border border-slate-200/60 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm">
         {activeRole === 'super_admin' ? (
-          <ShieldCheck className="w-7 h-7 text-[#10b981]" />
+          <ShieldCheck className="w-7 h-7 text-slate-800" />
         ) : (
           <Briefcase className="w-7 h-7 text-[#06b6d4]" />
         )}
@@ -145,7 +153,7 @@ export function UnifiedLoginCard({ onSuccess, redirectUrl = '/admin' }: UnifiedL
                   setPassword(e.target.value);
                   setErrorMessage(null);
                 }}
-                className="w-full px-4 py-3 bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl text-xs font-medium focus:outline-none focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 transition disabled:opacity-50"
+                className="w-full px-4 py-3 bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl text-xs font-medium focus:outline-none focus:border-slate-800 focus:ring-2 focus:ring-slate-400/20 transition disabled:opacity-50"
               />
               <button
                 type="button"
@@ -176,7 +184,7 @@ export function UnifiedLoginCard({ onSuccess, redirectUrl = '/admin' }: UnifiedL
                     setIdentifier(e.target.value);
                     setErrorMessage(null);
                   }}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl text-xs font-medium focus:outline-none focus:border-[#06b6d4] focus:ring-2 focus:ring-cyan-500/20 transition disabled:opacity-50"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:border-[#06b6d4] focus:ring-cyan-500/20 transition disabled:opacity-50"
                 />
               </div>
             </div>
@@ -199,7 +207,7 @@ export function UnifiedLoginCard({ onSuccess, redirectUrl = '/admin' }: UnifiedL
                     setPin(e.target.value.replace(/\D/g, ''));
                     setErrorMessage(null);
                   }}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 text-slate-900 font-mono tracking-widest placeholder:tracking-normal placeholder:text-slate-400 rounded-xl text-xs font-bold focus:outline-none focus:border-[#06b6d4] focus:ring-2 focus:ring-cyan-500/20 transition disabled:opacity-50"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 text-slate-900 font-mono tracking-widest placeholder:tracking-normal placeholder:text-slate-400 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:border-[#06b6d4] focus:ring-cyan-500/20 transition disabled:opacity-50"
                 />
               </div>
             </div>
@@ -215,7 +223,7 @@ export function UnifiedLoginCard({ onSuccess, redirectUrl = '/admin' }: UnifiedL
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-98 transition text-xs mt-4"
+          className="w-full py-3.5 bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-900 hover:opacity-95 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 active:scale-98 transition text-xs mt-4"
         >
           {loading ? (
             <>
@@ -230,9 +238,23 @@ export function UnifiedLoginCard({ onSuccess, redirectUrl = '/admin' }: UnifiedL
         </button>
       </form>
 
-      <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
-        <Sparkles className="w-3.5 h-3.5 text-lime-500" />
-        Sistem terlindungi enkripsi sesi internal & anti-brute force
+      {/* Link to Cafe Owner Login */}
+      <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center gap-2">
+        <p className="text-xs text-slate-400">
+          Pemilik atau pengelola kafe?
+        </p>
+        <Link
+          href="/login"
+          className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1.5 py-1 px-3 rounded-lg hover:bg-emerald-50"
+        >
+          <Store className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Masuk ke Portal Owner Kafe &rarr;</span>
+        </Link>
+      </div>
+
+      <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
+        <Sparkles className="w-3.5 h-3.5 text-cyan-500" />
+        Portal khusus manajemen & staf internal
       </div>
     </div>
   );
