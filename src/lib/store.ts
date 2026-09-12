@@ -43,6 +43,7 @@ class InMemoryStore {
       marketing_id: '00000000-0000-0000-0000-000000000001',
       sales_id: '00000000-0000-0000-0000-000000000001',
       deal_amount: 599000,
+      hpp: 150000,
       monthly_retainer_fee: 49000,
       deal_date: new Date().toISOString().split('T')[0],
       billing_type: 'subscription',
@@ -88,6 +89,8 @@ class InMemoryStore {
       marketing_id,
       sales_id: marketing_id,
       billing_type,
+      deal_amount: data.deal_amount !== undefined ? Number(data.deal_amount) : 599000,
+      hpp: data.hpp !== undefined ? Number(data.hpp) : 150000,
       monthly_retainer_fee: billing_type === 'one_time' ? 0 : data.monthly_retainer_fee,
       subscription_status: data.subscription_status || 'active',
       subscription_until:
@@ -338,7 +341,12 @@ class StoreRepository {
 
         const { data, error } = await query;
 
-        if (!error && data && data.length > 0) return data as Venue[];
+        if (!error && data && data.length > 0) {
+          return data.map((v: any) => ({
+            ...v,
+            hpp: v.hpp !== undefined && v.hpp !== null ? Number(v.hpp) : 150000,
+          })) as Venue[];
+        }
       } catch (err) {
         console.warn('Supabase listVenues error, using fallback:', err);
       }
@@ -362,6 +370,8 @@ class StoreRepository {
 
     const sanitizedPayload = {
       ...payload,
+      deal_amount: Number(payload.deal_amount) || 0,
+      hpp: payload.hpp !== undefined ? Number(payload.hpp) : 150000,
       sales_id: payload.sales_id && String(payload.sales_id).trim() !== '' ? String(payload.sales_id).trim() : null,
       deal_date: payload.deal_date || new Date().toISOString().split('T')[0],
     };
@@ -376,7 +386,7 @@ class StoreRepository {
           .single();
 
         if (error && error.code === 'PGRST204') {
-          const { billing_type, subscription_status, subscription_until, ...compatiblePayload } = sanitizedPayload;
+          const { billing_type, subscription_status, subscription_until, hpp, ...compatiblePayload } = sanitizedPayload;
           const retry = await client
             .from('venues')
             .insert([compatiblePayload])
@@ -389,11 +399,17 @@ class StoreRepository {
               billing_type: sanitizedPayload.billing_type,
               subscription_status: sanitizedPayload.subscription_status,
               subscription_until: sanitizedPayload.subscription_until,
+              hpp: sanitizedPayload.hpp,
             } as Venue;
           }
         }
 
-        if (!error && created) return created as Venue;
+        if (!error && created) {
+          return {
+            ...created,
+            hpp: sanitizedPayload.hpp,
+          } as Venue;
+        }
         if (error) console.warn('Supabase createVenue error:', error);
       } catch (err) {
         console.warn('Supabase createVenue error, using fallback:', err);
@@ -407,6 +423,12 @@ class StoreRepository {
       ...updates,
       updated_at: new Date().toISOString(),
     };
+    if ('deal_amount' in updates) {
+      sanitizedUpdates.deal_amount = Number(updates.deal_amount) || 0;
+    }
+    if ('hpp' in updates) {
+      sanitizedUpdates.hpp = Number(updates.hpp) || 0;
+    }
     if ('sales_id' in updates) {
       sanitizedUpdates.sales_id = updates.sales_id && String(updates.sales_id).trim() !== '' ? String(updates.sales_id).trim() : null;
     }
@@ -422,7 +444,7 @@ class StoreRepository {
           .single();
 
         if (error && error.code === 'PGRST204') {
-          const { billing_type, subscription_status, subscription_until, ...compatibleUpdates } = sanitizedUpdates;
+          const { billing_type, subscription_status, subscription_until, hpp, ...compatibleUpdates } = sanitizedUpdates;
           const retry = await client
             .from('venues')
             .update(compatibleUpdates)
@@ -438,7 +460,12 @@ class StoreRepository {
           }
         }
 
-        if (!error && updated) return updated as Venue;
+        if (!error && updated) {
+          return {
+            ...updated,
+            hpp: sanitizedUpdates.hpp !== undefined ? sanitizedUpdates.hpp : 150000,
+          } as Venue;
+        }
         if (error) console.warn('Supabase updateVenue error:', error);
       } catch (err) {
         console.warn('Supabase updateVenue error, using fallback:', err);

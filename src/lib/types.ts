@@ -46,7 +46,9 @@ export interface Venue {
   is_active: boolean;
   marketing_id?: string | null;
   sales_id?: string | null;
-  deal_amount: number;
+  deal_amount: number; // Harga Jual ke Klien
+  selling_price?: number; // Alias Harga Jual
+  hpp: number; // Harga Pokok Penjualan / Modal per unit stand akrilik & setup
   monthly_retainer_fee: number;
   deal_date: string;
   billing_type?: BillingType;

@@ -45,6 +45,8 @@ export async function POST(request: Request) {
       marketing_id,
       sales_id,
       deal_amount,
+      selling_price,
+      hpp,
       billing_type,
       monthly_retainer_fee,
     } = body;
@@ -68,6 +70,8 @@ export async function POST(request: Request) {
 
     const cleanBillingType = billing_type || (monthly_retainer_fee === 0 ? 'one_time' : 'subscription');
     const cleanRetainer = cleanBillingType === 'one_time' ? 0 : Number(monthly_retainer_fee || 0);
+    const cleanDealAmount = Number(selling_price !== undefined ? selling_price : deal_amount) || 0;
+    const cleanHpp = hpp !== undefined ? Number(hpp) : 150000;
 
     const payload: any = {
       name: name.trim(),
@@ -80,7 +84,8 @@ export async function POST(request: Request) {
       is_active: is_active !== undefined ? Boolean(is_active) : true,
       sales_id: assignedSpecialistId,
       marketing_id: assignedSpecialistId,
-      deal_amount: Number(deal_amount) || 0,
+      deal_amount: cleanDealAmount,
+      hpp: cleanHpp,
       billing_type: cleanBillingType,
       monthly_retainer_fee: cleanRetainer,
       deal_date: new Date().toISOString().split('T')[0],

@@ -161,6 +161,7 @@ describe('Admin Management & Auth Operations', () => {
         is_active: true,
         sales_id: '', // Should be sanitized to null
         deal_amount: 599000,
+        hpp: 125000,
         billing_type: 'one_time',
         monthly_retainer_fee: 0,
       }),
@@ -173,7 +174,51 @@ describe('Admin Management & Auth Operations', () => {
     expect(body.success).toBe(true);
     expect(body.venue.name).toBe('Kafe Kenangan Indah');
     expect(body.venue.sales_id).toBeNull();
+    expect(body.venue.deal_amount).toBe(599000);
+    expect(body.venue.hpp).toBe(125000);
     expect(body.venue.billing_type).toBe('one_time');
+  });
+
+  it('should support custom HPP and Harga Jual per transaction with correct margin', async () => {
+    // Transaction A: Regular package
+    const venueA = await dataStore.createVenue({
+      name: 'Kafe Alpha',
+      slug: 'kafe-alpha',
+      google_review_url: 'https://maps.google.com/review',
+      redirect_mode: 'smart_funnel',
+      feedback_channels: 'whatsapp',
+      owner_access_pin: '1111',
+      is_active: true,
+      deal_amount: 750000, // Harga Jual
+      hpp: 180000, // HPP modal alat
+      monthly_retainer_fee: 149000,
+      deal_date: '2026-09-12',
+    });
+
+    // Transaction B: Discounted promo package with lower HPP
+    const venueB = await dataStore.createVenue({
+      name: 'Kafe Beta Promo',
+      slug: 'kafe-beta-promo',
+      google_review_url: 'https://maps.google.com/review',
+      redirect_mode: 'direct_google',
+      feedback_channels: 'email',
+      owner_access_pin: '2222',
+      is_active: true,
+      deal_amount: 399000, // Harga Jual promo
+      hpp: 95000, // HPP ekonomis
+      monthly_retainer_fee: 0,
+      deal_date: '2026-09-12',
+    });
+
+    expect(venueA.deal_amount).toBe(750000);
+    expect(venueA.hpp).toBe(180000);
+    const marginA = venueA.deal_amount - venueA.hpp;
+    expect(marginA).toBe(570000);
+
+    expect(venueB.deal_amount).toBe(399000);
+    expect(venueB.hpp).toBe(95000);
+    const marginB = venueB.deal_amount - venueB.hpp;
+    expect(marginB).toBe(304000);
   });
 
   it('should list venues via /api/admin/venues GET route', async () => {

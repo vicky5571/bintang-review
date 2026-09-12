@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Venue, MarketingSpecialist, MarketingSpecialistSummary, PaymentConfirmation, AuthSession } from '@/lib/types';
-import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock, UserPlus, Briefcase, Award, TrendingUp } from 'lucide-react';
+import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock, UserPlus, Briefcase, Award, TrendingUp, Receipt, PiggyBank } from 'lucide-react';
 import { AdminVenueModal } from '@/components/AdminVenueModal';
 import { AdminMarketingModal } from '@/components/AdminMarketingModal';
 import { QrGeneratorModal } from '@/components/QrGeneratorModal';
@@ -170,6 +170,13 @@ export default function AdminPage() {
     ? marketingSpecialists.find((m) => m.id === currentUser?.specialist_id)
     : null;
 
+  // Super Admin Financial Metrics (Harga Jual, HPP, Margin Kotor, Net)
+  const totalRevenue = venues.reduce((acc, v) => acc + (Number(v.deal_amount) || 0), 0);
+  const totalHpp = venues.reduce((acc, v) => acc + (Number(v.hpp !== undefined && v.hpp !== null ? v.hpp : 150000)), 0);
+  const totalGrossProfit = totalRevenue - totalHpp;
+  const totalCommission = marketingSpecialists.reduce((acc, m) => acc + (Number(m.earned_commission) || 0), 0);
+  const netEstimatedProfit = totalGrossProfit - totalCommission;
+
   return (
     <div className="min-h-screen bg-slate-50/70 pb-16">
       {/* Top Navbar */}
@@ -227,6 +234,67 @@ export default function AdminPage() {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 space-y-8">
+        {/* SUPER ADMIN EXECUTIVE FINANCIAL CARDS */}
+        {isSuperAdmin && (
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-slate-500">Total Penjualan (Harga Jual)</span>
+                <div className="w-7 h-7 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center">
+                  <Receipt className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-lg sm:text-xl font-black text-slate-900">
+                Rp {totalRevenue.toLocaleString('id-ID')}
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">{venues.length} transaksi klien aktif</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-slate-500">Total HPP (Modal Produksi)</span>
+                <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-lg sm:text-xl font-black text-slate-900">
+                Rp {totalHpp.toLocaleString('id-ID')}
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">Biaya material & akrilik</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-emerald-200/80 shadow-sm bg-gradient-to-br from-emerald-50/30 to-white">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-emerald-800">Laba Kotor (Gross Profit)</span>
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-lg sm:text-xl font-black text-emerald-700">
+                Rp {totalGrossProfit.toLocaleString('id-ID')}
+              </div>
+              <p className="text-[10px] text-emerald-600/80 mt-1">
+                Margin {totalRevenue > 0 ? Math.round((totalGrossProfit / totalRevenue) * 100) : 0}%
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-purple-200/80 shadow-sm bg-gradient-to-br from-purple-50/30 to-white">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-purple-800">Estimasi Laba Bersih</span>
+                <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                  <PiggyBank className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-lg sm:text-xl font-black text-purple-800">
+                Rp {netEstimatedProfit.toLocaleString('id-ID')}
+              </div>
+              <p className="text-[10px] text-purple-600/80 mt-1">
+                Setelah komisi marketing
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* MARKETING SPECIALIST PERSONAL SUMMARY CARDS */}
         {isMarketingSpecialist && (
           <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -248,7 +316,7 @@ export default function AdminPage() {
                 <TrendingUp className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs text-slate-500 font-medium">Total Nilai Deal</p>
+                <p className="text-xs text-slate-500 font-medium">Total Penjualan (Harga Jual)</p>
                 <h3 className="text-2xl font-black text-slate-900">
                   Rp {(currentSpecialistSummary?.total_revenue ?? venues.reduce((acc, v) => acc + (v.deal_amount || 0), 0)).toLocaleString('id-ID')}
                 </h3>
@@ -288,6 +356,7 @@ export default function AdminPage() {
                   <th className="px-6 py-3.5">Slug & Tap Link</th>
                   <th className="px-6 py-3.5">Mode</th>
                   <th className="px-6 py-3.5">Paket</th>
+                  <th className="px-6 py-3.5">Harga Jual {isSuperAdmin ? '& HPP' : ''}</th>
                   <th className="px-6 py-3.5">PIN Owner</th>
                   <th className="px-6 py-3.5">Status</th>
                   <th className="px-6 py-3.5 text-right">Aksi</th>
@@ -296,88 +365,105 @@ export default function AdminPage() {
               <tbody className="divide-y divide-slate-100">
                 {venues.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-slate-400">
+                    <td colSpan={8} className="px-6 py-10 text-center text-slate-400">
                       Belum ada klien kafe terdaftar. Klik <strong>Tambah Klien Venue</strong> untuk mendaftarkan kafe baru.
                     </td>
                   </tr>
                 ) : (
-                  venues.map((v) => (
-                    <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-900">{v.name}</td>
-                      <td className="px-6 py-4">
-                        <a
-                          href={`/r/${v.slug}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-cyan-600 hover:text-cyan-700 font-mono text-xs flex items-center gap-1 hover:underline"
-                        >
-                          /r/{v.slug} <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                            v.redirect_mode === 'smart_funnel'
-                              ? 'bg-lime-50 text-lime-800 border border-lime-200/80'
-                              : 'bg-cyan-50 text-cyan-800 border border-cyan-200/80'
-                          }`}
-                        >
-                          {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        {v.billing_type === 'one_time' || v.monthly_retainer_fee === 0 ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-semibold border border-purple-200/80">
-                            💎 Lifetime
+                  venues.map((v) => {
+                    const price = v.deal_amount || 0;
+                    const cogs = v.hpp !== undefined && v.hpp !== null ? v.hpp : 150000;
+                    const margin = price - cogs;
+                    return (
+                      <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-6 py-4 font-bold text-slate-900">{v.name}</td>
+                        <td className="px-6 py-4">
+                          <a
+                            href={`/r/${v.slug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-cyan-600 hover:text-cyan-700 font-mono text-xs flex items-center gap-1 hover:underline"
+                          >
+                            /r/{v.slug} <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                              v.redirect_mode === 'smart_funnel'
+                                ? 'bg-lime-50 text-lime-800 border border-lime-200/80'
+                                : 'bg-cyan-50 text-cyan-800 border border-cyan-200/80'
+                            }`}
+                          >
+                            {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
                           </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-semibold border border-blue-200/80">
-                            🔄 Rp {(v.monthly_retainer_fee || 0).toLocaleString('id-ID')}/bln
+                        </td>
+                        <td className="px-6 py-4">
+                          {v.billing_type === 'one_time' || v.monthly_retainer_fee === 0 ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-semibold border border-purple-200/80">
+                              💎 Lifetime
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-semibold border border-blue-200/80">
+                              🔄 Rp {(v.monthly_retainer_fee || 0).toLocaleString('id-ID')}/bln
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-slate-900 block">
+                            Rp {price.toLocaleString('id-ID')}
                           </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 font-mono font-bold text-slate-600">{v.owner_access_pin}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-                            v.is_active ? 'text-emerald-600' : 'text-slate-400'
-                          }`}
-                        >
-                          <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                          {v.is_active ? 'Aktif' : 'Non-Aktif'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <button
-                          onClick={() => {
-                            setSelectedVenueForQr(v);
-                            setIsQrModalOpen(true);
-                          }}
-                          className="p-2 text-slate-500 hover:text-cyan-600 rounded-lg hover:bg-slate-100 transition"
-                          title="Download QR & NFC"
-                        >
-                          <QrCode className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedVenueForEdit(v);
-                            setIsModalOpen(true);
-                          }}
-                          className="px-3 py-1.5 bg-slate-100 text-slate-700 font-medium text-xs rounded-lg hover:bg-slate-200 transition"
-                        >
-                          Edit
-                        </button>
-                        <a
-                          href={`/portal/${v.slug}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 bg-slate-900 text-white font-medium text-xs rounded-lg hover:bg-slate-800 transition"
-                        >
-                          Portal
-                        </a>
-                      </td>
-                    </tr>
-                  ))
+                          {isSuperAdmin ? (
+                            <span className="text-[10px] text-slate-500 block font-normal mt-0.5">
+                              HPP: Rp {cogs.toLocaleString('id-ID')} • Margin: <strong className="text-emerald-600 font-semibold">Rp {margin.toLocaleString('id-ID')}</strong>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 block font-normal">Harga Jual Unit</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 font-mono font-bold text-slate-600">{v.owner_access_pin}</td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
+                              v.is_active ? 'text-emerald-600' : 'text-slate-400'
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                            {v.is_active ? 'Aktif' : 'Non-Aktif'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right space-x-2">
+                          <button
+                            onClick={() => {
+                              setSelectedVenueForQr(v);
+                              setIsQrModalOpen(true);
+                            }}
+                            className="p-2 text-slate-500 hover:text-cyan-600 rounded-lg hover:bg-slate-100 transition"
+                            title="Download QR & NFC"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedVenueForEdit(v);
+                              setIsModalOpen(true);
+                            }}
+                            className="px-3 py-1.5 bg-slate-100 text-slate-700 font-medium text-xs rounded-lg hover:bg-slate-200 transition"
+                          >
+                            Edit
+                          </button>
+                          <a
+                            href={`/portal/${v.slug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 bg-slate-900 text-white font-medium text-xs rounded-lg hover:bg-slate-800 transition"
+                          >
+                            Portal
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

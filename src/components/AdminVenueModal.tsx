@@ -36,6 +36,7 @@ export function AdminVenueModal({
     is_active: boolean;
     marketing_id: string;
     deal_amount: number;
+    hpp: number;
     billing_type: BillingType;
     monthly_retainer_fee: number;
   }>({
@@ -49,6 +50,7 @@ export function AdminVenueModal({
     is_active: true,
     marketing_id: '',
     deal_amount: 599000,
+    hpp: 150000,
     billing_type: 'subscription',
     monthly_retainer_fee: 149000,
   });
@@ -70,7 +72,8 @@ export function AdminVenueModal({
         owner_access_pin: venue.owner_access_pin,
         is_active: venue.is_active,
         marketing_id: isMarketingSpecialistRole ? (currentSpecialistId || '') : (venue.marketing_id || venue.sales_id || ''),
-        deal_amount: venue.deal_amount,
+        deal_amount: venue.deal_amount !== undefined ? Number(venue.deal_amount) : 599000,
+        hpp: venue.hpp !== undefined && venue.hpp !== null ? Number(venue.hpp) : 150000,
         billing_type: isOneTime ? 'one_time' : 'subscription',
         monthly_retainer_fee: isOneTime ? 0 : (venue.monthly_retainer_fee || 149000),
       });
@@ -86,6 +89,7 @@ export function AdminVenueModal({
         is_active: true,
         marketing_id: defaultMarketingId,
         deal_amount: 599000,
+        hpp: 150000,
         billing_type: 'subscription',
         monthly_retainer_fee: 149000,
       });
@@ -236,42 +240,77 @@ export function AdminVenueModal({
                   <span className="text-xs font-bold flex items-center gap-1.5">
                     💎 Sekali Bayar (Lifetime)
                   </span>
-                  <span className="text-[11px] text-slate-500 mt-0.5">Beli alat sekali, aktif selamanya</span>
+                  <span className="text-[11px] text-slate-500 mt-0.5">Sekali bayar, aktif selamanya tanpa iuran</span>
                 </button>
               </div>
             </div>
 
+            {/* Financials: Harga Jual & HPP Per Transaksi */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-600">Harga Beli Alat / Setup (Rp)</label>
+                <label className="block text-xs font-semibold text-slate-700">
+                  Harga Jual ke Klien (Rp) *
+                </label>
                 <input
+                  required
                   type="number"
+                  min="0"
                   value={formData.deal_amount}
                   onChange={(e) => setFormData({ ...formData, deal_amount: Number(e.target.value) })}
-                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
+                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
                   placeholder="599000"
                 />
+                <p className="text-[10px] text-slate-400 mt-1">Nominal yang ditagihkan ke klien kafe.</p>
               </div>
 
-              {formData.billing_type === 'subscription' ? (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600">Biaya Retainer / Bln (Rp)</label>
-                  <input
-                    type="number"
-                    value={formData.monthly_retainer_fee}
-                    onChange={(e) => setFormData({ ...formData, monthly_retainer_fee: Number(e.target.value) })}
-                    className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
-                    placeholder="149000"
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <div className="w-full bg-purple-50/70 border border-purple-200/80 rounded-xl p-2.5 text-[11px] text-purple-700 leading-tight">
-                    ✨ <strong>Bebas Iuran</strong> — Akrilik aktif seumur hidup tanpa tagihan perpanjangan.
-                  </div>
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700">
+                  HPP / Modal Produksi (Rp) *
+                </label>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  value={formData.hpp}
+                  onChange={(e) => setFormData({ ...formData, hpp: Number(e.target.value) })}
+                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 focus:outline-none text-xs"
+                  placeholder="150000"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Biaya cetak akrilik, chip NFC & packing.</p>
+              </div>
             </div>
+
+            {/* Live Profit Margin Preview */}
+            <div className="p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/80 flex items-center justify-between text-xs">
+              <span className="text-slate-600 font-medium">Estimasi Laba Kotor per Unit:</span>
+              <div className="text-right">
+                <span className={`font-black ${formData.deal_amount - formData.hpp >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  Rp {(formData.deal_amount - formData.hpp).toLocaleString('id-ID')}
+                </span>
+                <span className="text-[10px] text-slate-400 ml-1.5 font-semibold">
+                  ({formData.deal_amount > 0 ? Math.round(((formData.deal_amount - formData.hpp) / formData.deal_amount) * 100) : 0}%)
+                </span>
+              </div>
+            </div>
+
+            {formData.billing_type === 'subscription' ? (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700">Biaya Retainer / Bln (Rp)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.monthly_retainer_fee}
+                  onChange={(e) => setFormData({ ...formData, monthly_retainer_fee: Number(e.target.value) })}
+                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs font-bold"
+                  placeholder="149000"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Tagihan perpanjangan rutin bulanan klien.</p>
+              </div>
+            ) : (
+              <div className="w-full bg-purple-50/70 border border-purple-200/80 rounded-xl p-2.5 text-[11px] text-purple-700 leading-tight">
+                ✨ <strong>Paket Lifetime</strong> — Klien bebas iuran bulanan, akrilik aktif seumur hidup.
+              </div>
+            )}
 
             <div className="pt-1">
               <label className="block text-xs font-semibold text-slate-600">Marketing Specialist Penanggung Jawab</label>
