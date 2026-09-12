@@ -1,8 +1,7 @@
-'use client';
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Venue, VenueAnalytics, FeedbackMessage } from '@/lib/types';
-import { Star, MessageCircle, BarChart3, ShieldCheck, PhoneCall } from 'lucide-react';
+import { Star, MessageCircle, BarChart3, ShieldCheck, PhoneCall, CreditCard } from 'lucide-react';
+import { PaymentModal } from './PaymentModal';
 
 interface OwnerDashboardViewProps {
   venue: Venue;
@@ -11,6 +10,9 @@ interface OwnerDashboardViewProps {
 }
 
 export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboardViewProps) {
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [activeVenue, setActiveVenue] = useState(venue);
+
   const supportWaUrl = `https://wa.me/628123456789?text=${encodeURIComponent(
     `Halo Tim Bintang Review, saya owner ${venue.name} (slug: ${venue.slug}) ingin meminta bantuan layanan:`
   )}`;
@@ -41,6 +43,49 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-8 mt-6 space-y-6">
+        {/* Subscription Status Bar */}
+        <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md border border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-[#00c48c] flex items-center justify-center font-bold border border-emerald-500/20">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-medium">Status Langganan Retainer:</span>
+                {activeVenue.subscription_status === 'pending_verification' ? (
+                  <span className="text-[11px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full font-semibold border border-amber-500/30 animate-pulse">
+                    ⏳ Verifikasi Pembayaran Diproses
+                  </span>
+                ) : activeVenue.subscription_status === 'expired' ? (
+                  <span className="text-[11px] bg-rose-500/20 text-rose-300 px-2.5 py-0.5 rounded-full font-semibold border border-rose-500/30">
+                    ⚠️ Masa Aktif Berakhir
+                  </span>
+                ) : (
+                  <span className="text-[11px] bg-emerald-500/20 text-[#00c48c] px-2.5 py-0.5 rounded-full font-semibold border border-emerald-500/30">
+                    Aktif
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-300 font-medium mt-1">
+                {activeVenue.subscription_until
+                  ? `Masa aktif hingga: ${new Date(activeVenue.subscription_until).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}`
+                  : 'Aktif seumur hidup (Paket Starter)'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="px-4 py-2.5 bg-gradient-to-r from-[#00c48c] to-[#00a877] text-slate-950 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition active:scale-95 whitespace-nowrap hover:brightness-105"
+          >
+            Bayar / Perpanjang Retainer
+          </button>
+        </div>
+
         {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm">
@@ -143,6 +188,16 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
           </a>
         </div>
       </div>
+
+      {/* Payment Confirmation Modal */}
+      <PaymentModal
+        venue={activeVenue}
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        onSuccess={() => {
+          setActiveVenue((prev) => ({ ...prev, subscription_status: 'pending_verification' }));
+        }}
+      />
     </div>
   );
 }

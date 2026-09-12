@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Venue, SalesAgentSummary } from '@/lib/types';
+import { Venue, SalesAgentSummary, PaymentConfirmation } from '@/lib/types';
 import { dataStore } from '@/lib/store';
-import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut } from 'lucide-react';
+import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { AdminVenueModal } from '@/components/AdminVenueModal';
 import { QrGeneratorModal } from '@/components/QrGeneratorModal';
 import { AdminLoginModal } from '@/components/AdminLoginModal';
@@ -13,6 +13,7 @@ export default function AdminPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [salesAgents, setSalesAgents] = useState<SalesAgentSummary[]>([]);
+  const [payments, setPayments] = useState<PaymentConfirmation[]>([]);
   const [selectedVenueForEdit, setSelectedVenueForEdit] = useState<Venue | null>(null);
   const [selectedVenueForQr, setSelectedVenueForQr] = useState<Venue | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +24,8 @@ export default function AdminPage() {
     setVenues(vList);
     const saList = await dataStore.listSalesAgents();
     setSalesAgents(saList);
+    const pList = await dataStore.listPaymentConfirmations();
+    setPayments(pList);
   };
 
   const checkAuth = async () => {
@@ -65,6 +68,11 @@ export default function AdminPage() {
     }
     setIsModalOpen(false);
     setSelectedVenueForEdit(null);
+    await loadData();
+  };
+
+  const handleVerifyPayment = async (id: string, status: 'approved' | 'rejected') => {
+    await dataStore.verifyPaymentConfirmation(id, status, 'Diverifikasi oleh Super Admin');
     await loadData();
   };
 
@@ -214,6 +222,104 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Payment Verifications Section */}
+        <section className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-[#00c48c]" />
+              <h2 className="font-bold text-slate-800 text-sm sm:text-base">
+                Antrean Konfirmasi Pembayaran Retainer ({payments.filter((p) => p.status === 'pending').length} Menunggu)
+              </h2>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                <tr>
+                  <th className="px-6 py-3">Venue Kafe</th>
+                  <th className="px-6 py-3">Nominal</th>
+                  <th className="px-6 py-3">Metode & Pengirim</th>
+                  <th className="px-6 py-3">Catatan / Ref</th>
+                  <th className="px-6 py-3">Tanggal Submit</th>
+                  <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3 text-right">Aksi Verifikasi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {payments.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
+                      🎉 Belum ada konfirmasi pembayaran yang dikirimkan klien.
+                    </td>
+                  </tr>
+                ) : (
+                  payments.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50/70 transition">
+                      <td className="px-6 py-4 font-bold text-slate-800">
+                        {p.venue_name || 'Venue'}
+                      </td>
+                      <td className="px-6 py-4 font-black text-slate-900">
+                        Rp {p.amount.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-semibold text-slate-700 block">{p.payment_method}</span>
+                        <span className="text-[11px] text-slate-400">a.n. {p.sender_name}</span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-500 max-w-xs truncate">
+                        {p.notes || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-slate-400 text-[11px]">
+                        {new Date(p.created_at).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-6 py-4">
+                        {p.status === 'pending' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full border border-amber-200">
+                            <Clock className="w-3 h-3" /> Menunggu
+                          </span>
+                        ) : p.status === 'approved' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-200">
+                            <CheckCircle className="w-3 h-3" /> Disetujui
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full border border-rose-200">
+                            <XCircle className="w-3 h-3" /> Ditolak
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {p.status === 'pending' ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleVerifyPayment(p.id, 'approved')}
+                              className="px-3 py-1.5 bg-[#00c48c] hover:bg-[#00a877] text-slate-950 font-bold rounded-lg shadow-sm transition active:scale-95 text-[11px]"
+                            >
+                              Setujui (+30 Hari)
+                            </button>
+                            <button
+                              onClick={() => handleVerifyPayment(p.id, 'rejected')}
+                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold rounded-lg border border-rose-200 transition active:scale-95 text-[11px]"
+                            >
+                              Tolak
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">Selesai diproses</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

@@ -5,6 +5,7 @@ import {
   FeedbackMessage,
   VenueAnalytics,
   SalesAgentSummary,
+  PaymentConfirmation,
 } from './types';
 import { supabase, supabaseAdmin, isSupabaseConfigured } from './supabase/client';
 
@@ -47,10 +48,12 @@ class InMemoryStore {
 
   private scanLogs: ScanLog[] = [];
   private feedbackMessages: FeedbackMessage[] = [];
+  private paymentConfirmations: PaymentConfirmation[] = [];
 
   reset() {
     this.scanLogs = [];
     this.feedbackMessages = [];
+    this.paymentConfirmations = [];
   }
 
   async getVenueBySlug(slug: string): Promise<Venue | null> {
@@ -155,6 +158,63 @@ class InMemoryStore {
         earned_commission,
       };
     });
+  }
+
+  async submitPaymentConfirmation(
+    data: Omit<PaymentConfirmation, 'id' | 'status' | 'created_at' | 'verified_at' | 'verified_notes'>
+  ): Promise<PaymentConfirmation> {
+    const confirmation: PaymentConfirmation = {
+      ...data,
+      id: `pay-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    };
+    this.paymentConfirmations.unshift(confirmation);
+
+    const venue = this.venues.find((v) => v.id === data.venue_id);
+    if (venue) {
+      venue.subscription_status = 'pending_verification';
+    }
+
+    return { ...confirmation };
+  }
+
+  async listPaymentConfirmations(): Promise<PaymentConfirmation[]> {
+    return this.paymentConfirmations.map((p) => {
+      const v = this.venues.find((venue) => venue.id === p.venue_id);
+      return {
+        ...p,
+        venue_name: v?.name || 'Venue',
+        venue_slug: v?.slug || '',
+      };
+    });
+  }
+
+  async verifyPaymentConfirmation(
+    id: string,
+    status: 'approved' | 'rejected',
+    notes?: string
+  ): Promise<PaymentConfirmation | null> {
+    const confirmation = this.paymentConfirmations.find((p) => p.id === id);
+    if (!confirmation) return null;
+
+    confirmation.status = status;
+    confirmation.verified_at = new Date().toISOString();
+    confirmation.verified_notes = notes;
+
+    const venue = this.venues.find((v) => v.id === confirmation.venue_id);
+    if (venue) {
+      if (status === 'approved') {
+        venue.subscription_status = 'active';
+        const currentExpiry = venue.subscription_until ? new Date(venue.subscription_until).getTime() : Date.now();
+        const baseTime = Math.max(Date.now(), currentExpiry);
+        venue.subscription_until = new Date(baseTime + 30 * 24 * 60 * 60 * 1000).toISOString();
+      } else {
+        venue.subscription_status = 'expired';
+      }
+    }
+
+    return { ...confirmation };
   }
 }
 
@@ -371,6 +431,95 @@ class StoreRepository {
       }
     }
     return this.inMemory.listSalesAgents();
+  }
+
+  async submitPaymentConfirmation(
+    data: Omit<PaymentConfirmation, 'id' | 'status' | 'created_at' | 'verified_at' | 'verified_notes'>
+  ): Promise<PaymentConfirmation> {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
+      try {
+        const { data: created, error } = await client
+          .from('payment_confirmations')
+          .insert([data])
+          .select()
+          .single();
+
+        if (!error && created) {
+          await client
+            .from('venues')
+            .update({ subscription_status: 'pending_verification' })
+            .eq('id', data.venue_id);
+
+          return created as PaymentConfirmation;
+        }
+      } catch (err) {
+        console.warn('Supabase submitPaymentConfirmation error, using fallback:', err);
+      }
+    }
+    return this.inMemory.submitPaymentConfirmation(data);
+  }
+
+  async listPaymentConfirmations(): Promise<PaymentConfirmation[]> {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
+      try {
+        const { data: confirmations, error } = await client
+          .from('payment_confirmations')
+          .select('*, venues(name, slug)')
+          .order('created_at', { ascending: false });
+
+        if (!error && confirmations) {
+          return confirmations.map((c: any) => ({
+            ...c,
+            venue_name: c.venues?.name || 'Venue',
+            venue_slug: c.venues?.slug || '',
+          }));
+        }
+      } catch (err) {
+        console.warn('Supabase listPaymentConfirmations error, using fallback:', err);
+      }
+    }
+    return this.inMemory.listPaymentConfirmations();
+  }
+
+  async verifyPaymentConfirmation(
+    id: string,
+    status: 'approved' | 'rejected',
+    notes?: string
+  ): Promise<PaymentConfirmation | null> {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
+      try {
+        const { data: updated, error } = await client
+          .from('payment_confirmations')
+          .update({
+            status,
+            verified_at: new Date().toISOString(),
+            verified_notes: notes,
+          })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (!error && updated) {
+          const extensionDays = 30;
+          const newExpiry = new Date(Date.now() + extensionDays * 24 * 60 * 60 * 1000).toISOString();
+          await client
+            .from('venues')
+            .update({
+              subscription_status: status === 'approved' ? 'active' : 'expired',
+              subscription_until: status === 'approved' ? newExpiry : undefined,
+            })
+            .eq('id', updated.venue_id);
+
+          return updated as PaymentConfirmation;
+        }
+      } catch (err) {
+        console.warn('Supabase verifyPaymentConfirmation error, using fallback:', err);
+      }
+    }
+    return this.inMemory.verifyPaymentConfirmation(id, status, notes);
   }
 }
 

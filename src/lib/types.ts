@@ -13,6 +13,9 @@ export interface SalesAgent {
   created_at: string;
 }
 
+export type SubscriptionStatus = 'active' | 'pending_verification' | 'expired';
+export type PaymentStatus = 'pending' | 'approved' | 'rejected';
+
 export interface Venue {
   id: string;
   slug: string;
@@ -29,8 +32,26 @@ export interface Venue {
   deal_amount: number;
   monthly_retainer_fee: number;
   deal_date: string;
+  subscription_status?: SubscriptionStatus;
+  subscription_until?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface PaymentConfirmation {
+  id: string;
+  venue_id: string;
+  amount: number;
+  payment_method: string;
+  sender_name: string;
+  proof_url?: string;
+  notes?: string;
+  status: PaymentStatus;
+  verified_at?: string;
+  verified_notes?: string;
+  created_at: string;
+  venue_name?: string;
+  venue_slug?: string;
 }
 
 export interface ScanLog {
