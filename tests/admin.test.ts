@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { dataStore } from '@/lib/store';
 import { POST as authPost, GET as authGet } from '@/app/api/admin/auth/route';
+import { POST as venuesPost, GET as venuesGet } from '@/app/api/admin/venues/route';
+import { POST as agentsPost, GET as agentsGet } from '@/app/api/admin/sales-agents/route';
 
 describe('Admin Management & Auth Operations', () => {
   const originalAdminPass = process.env.ADMIN_PASSWORD;
@@ -142,5 +144,65 @@ describe('Admin Management & Auth Operations', () => {
     expect(found).toBeDefined();
     expect(found?.name).toBe('Rian Pratama');
     expect(found?.commission_rate).toBe(25);
+  });
+
+  it('should create a venue via /api/admin/venues POST route with sales_id sanitization', async () => {
+    const req = new Request('http://localhost:3000/api/admin/venues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Kafe Kenangan Indah',
+        slug: 'kafe-kenangan-indah',
+        google_review_url: 'https://maps.google.com/review',
+        redirect_mode: 'smart_funnel',
+        feedback_channels: 'whatsapp',
+        whatsapp_number: '628123444555',
+        owner_access_pin: '9999',
+        is_active: true,
+        sales_id: '', // Should be sanitized to null
+        deal_amount: 599000,
+        billing_type: 'one_time',
+        monthly_retainer_fee: 0,
+      }),
+    });
+
+    const res = await venuesPost(req);
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.venue.name).toBe('Kafe Kenangan Indah');
+    expect(body.venue.sales_id).toBeNull();
+    expect(body.venue.billing_type).toBe('one_time');
+  });
+
+  it('should list venues via /api/admin/venues GET route', async () => {
+    const res = await venuesGet();
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.venues)).toBe(true);
+  });
+
+  it('should create sales agent via /api/admin/sales-agents POST route', async () => {
+    const req = new Request('http://localhost:3000/api/admin/sales-agents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Siti Aminah',
+        phone_whatsapp: '6281345678901',
+        commission_type: 'fixed_amount',
+        commission_rate: 150000,
+      }),
+    });
+
+    const res = await agentsPost(req);
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.salesAgent.name).toBe('Siti Aminah');
+    expect(body.salesAgent.commission_rate).toBe(150000);
   });
 });

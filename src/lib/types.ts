@@ -29,7 +29,7 @@ export interface Venue {
   feedback_email?: string;
   owner_access_pin: string;
   is_active: boolean;
-  sales_id?: string;
+  sales_id?: string | null;
   deal_amount: number;
   monthly_retainer_fee: number;
   deal_date: string;

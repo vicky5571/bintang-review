@@ -318,40 +318,56 @@ class StoreRepository {
           : undefined),
     };
 
+    const sanitizedPayload = {
+      ...payload,
+      sales_id: payload.sales_id && String(payload.sales_id).trim() !== '' ? String(payload.sales_id).trim() : null,
+      deal_date: payload.deal_date || new Date().toISOString().split('T')[0],
+    };
+
     const client = supabaseAdmin || supabase;
     if (isSupabaseConfigured && client) {
       try {
         const { data: created, error } = await client
           .from('venues')
-          .insert([payload])
+          .insert([sanitizedPayload])
           .select()
           .single();
 
         if (!error && created) return created as Venue;
+        if (error) console.warn('Supabase createVenue error:', error);
       } catch (err) {
         console.warn('Supabase createVenue error, using fallback:', err);
       }
     }
-    return this.inMemory.createVenue(payload);
+    return this.inMemory.createVenue(sanitizedPayload);
   }
 
   async updateVenue(id: string, updates: Partial<Venue>): Promise<Venue | null> {
+    const sanitizedUpdates: any = {
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+    if ('sales_id' in updates) {
+      sanitizedUpdates.sales_id = updates.sales_id && String(updates.sales_id).trim() !== '' ? String(updates.sales_id).trim() : null;
+    }
+
     const client = supabaseAdmin || supabase;
     if (isSupabaseConfigured && client) {
       try {
         const { data: updated, error } = await client
           .from('venues')
-          .update({ ...updates, updated_at: new Date().toISOString() })
+          .update(sanitizedUpdates)
           .eq('id', id)
           .select()
           .single();
 
         if (!error && updated) return updated as Venue;
+        if (error) console.warn('Supabase updateVenue error:', error);
       } catch (err) {
         console.warn('Supabase updateVenue error, using fallback:', err);
       }
     }
-    return this.inMemory.updateVenue(id, updates);
+    return this.inMemory.updateVenue(id, sanitizedUpdates);
   }
 
   async logScan(data: Omit<ScanLog, 'id' | 'scanned_at'>): Promise<ScanLog> {

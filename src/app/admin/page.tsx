@@ -22,12 +22,42 @@ export default function AdminPage() {
   const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
 
   const loadData = async () => {
-    const vList = await dataStore.listVenues();
-    setVenues(vList);
-    const saList = await dataStore.listSalesAgents();
-    setSalesAgents(saList);
-    const pList = await dataStore.listPaymentConfirmations();
-    setPayments(pList);
+    try {
+      const [resV, resS, resP] = await Promise.all([
+        fetch('/api/admin/venues'),
+        fetch('/api/admin/sales-agents'),
+        fetch('/api/admin/payment'),
+      ]);
+
+      if (resV.ok) {
+        const dV = await resV.json();
+        setVenues(dV.venues || []);
+      } else {
+        setVenues(await dataStore.listVenues());
+      }
+
+      if (resS.ok) {
+        const dS = await resS.json();
+        setSalesAgents(dS.salesAgents || []);
+      } else {
+        setSalesAgents(await dataStore.listSalesAgents());
+      }
+
+      if (resP.ok) {
+        const dP = await resP.json();
+        setPayments(dP.payments || []);
+      } else {
+        setPayments(await dataStore.listPaymentConfirmations());
+      }
+    } catch (err) {
+      console.warn('API fetch fallback to dataStore:', err);
+      const vList = await dataStore.listVenues();
+      setVenues(vList);
+      const saList = await dataStore.listSalesAgents();
+      setSalesAgents(saList);
+      const pList = await dataStore.listPaymentConfirmations();
+      setPayments(pList);
+    }
   };
 
   const checkAuth = async () => {
@@ -63,23 +93,67 @@ export default function AdminPage() {
   };
 
   const handleSaveVenue = async (formData: Partial<Venue>) => {
-    if (selectedVenueForEdit) {
-      await dataStore.updateVenue(selectedVenueForEdit.id, formData);
-    } else {
-      await dataStore.createVenue(formData as any);
+    try {
+      const res = await fetch('/api/admin/venues', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          id: selectedVenueForEdit?.id,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || 'Gagal menyimpan venue');
+        return;
+      }
+    } catch (err) {
+      console.error('Error saving venue via API:', err);
+      if (selectedVenueForEdit) {
+        await dataStore.updateVenue(selectedVenueForEdit.id, formData);
+      } else {
+        await dataStore.createVenue(formData as any);
+      }
     }
+
     setIsModalOpen(false);
     setSelectedVenueForEdit(null);
     await loadData();
   };
 
   const handleVerifyPayment = async (id: string, status: 'approved' | 'rejected') => {
-    await dataStore.verifyPaymentConfirmation(id, status, 'Diverifikasi oleh Super Admin');
+    try {
+      await fetch('/api/admin/payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, notes: 'Diverifikasi oleh Super Admin' }),
+      });
+    } catch (err) {
+      console.error('Error verifying payment via API:', err);
+      await dataStore.verifyPaymentConfirmation(id, status, 'Diverifikasi oleh Super Admin');
+    }
     await loadData();
   };
 
   const handleSaveSalesAgent = async (formData: Omit<SalesAgent, 'id' | 'created_at'>) => {
-    await dataStore.createSalesAgent(formData);
+    try {
+      const res = await fetch('/api/admin/sales-agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || 'Gagal menyimpan data marketing');
+        return;
+      }
+    } catch (err) {
+      console.error('Error saving sales agent via API:', err);
+      await dataStore.createSalesAgent(formData);
+    }
+
     setIsSalesModalOpen(false);
     await loadData();
   };
