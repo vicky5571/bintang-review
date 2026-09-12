@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { MarketingSpecialist } from '@/lib/types';
 import { X, UserPlus, Percent, DollarSign, Phone, Mail, KeyRound, Info } from 'lucide-react';
+import { CurrencyInput } from '@/components/CurrencyInput';
 
 interface AdminMarketingModalProps {
   isOpen: boolean;
@@ -179,30 +180,45 @@ export function AdminMarketingModal({ isOpen, onClose, onSave }: AdminMarketingM
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700">
-                {formData.commission_type === 'percentage' ? 'Besaran Komisi (%) *' : 'Nominal Komisi per Venue (Rp) *'}
-              </label>
-              <div className="relative mt-1">
-                <input
+            {formData.commission_type === 'percentage' ? (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700">
+                  Besaran Komisi (%) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative mt-1">
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={formData.commission_rate}
+                    onChange={(e) => setFormData({ ...formData, commission_rate: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs font-bold"
+                    placeholder="20"
+                  />
+                </div>
+                <div className="flex items-start gap-1.5 text-[11px] text-slate-500 mt-1.5">
+                  <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                  <span>
+                    Komisi {formData.commission_rate}% dari paket Rp 599.000 = Rp {Math.round((599000 * formData.commission_rate) / 100).toLocaleString('id-ID')}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <CurrencyInput
+                  label="Nominal Komisi Tetap per Venue (Rp)"
                   required
-                  type="number"
-                  min="1"
                   value={formData.commission_rate}
-                  onChange={(e) => setFormData({ ...formData, commission_rate: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs font-bold"
-                  placeholder={formData.commission_type === 'percentage' ? '20' : '100000'}
+                  onChange={(val) => setFormData({ ...formData, commission_rate: val })}
+                  placeholder="100.000"
+                  presets={[50000, 100000, 150000, 200000]}
+                  showTerbilang
+                  colorScheme="cyan"
+                  helpText="Komisi tetap yang diterima Marketing Specialist untuk setiap 1 venue closing."
                 />
               </div>
-              <div className="flex items-start gap-1.5 text-[11px] text-slate-500 mt-1.5">
-                <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                <span>
-                  {formData.commission_type === 'percentage'
-                    ? `Komisi ${formData.commission_rate}% dari paket Rp 599.000 = Rp ${Math.round((599000 * formData.commission_rate) / 100).toLocaleString('id-ID')}`
-                    : `Komisi tetap Rp ${Number(formData.commission_rate).toLocaleString('id-ID')} tiap 1 venue yang berhasil bergabung`}
-                </span>
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Venue, MarketingSpecialistSummary, RedirectMode, FeedbackChannel, BillingType, UserRole, HppPayerType, HppBearer } from '@/lib/types';
 import { calculateProfitDistribution } from '@/lib/profitSharing';
-import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent, Trash2, PlusCircle, CheckCircle2, AlertTriangle, Users, Info, RefreshCw, Gem, Scale, Loader2, Zap } from 'lucide-react';
+import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent, Trash2, PlusCircle, CheckCircle2, AlertTriangle, Users, Info, RefreshCw, Gem, Scale, Loader2, Zap, TrendingUp } from 'lucide-react';
+import { CurrencyInput } from '@/components/CurrencyInput';
 
 interface AdminVenueModalProps {
   venue: Venue | null;
@@ -256,6 +257,67 @@ export function AdminVenueModal({
   const currentSpecialistObj = marketingSpecialists.find((m) => m.id === (currentSpecialistId || formData.marketing_id));
 
   const totalAllocated = (formData.hpp_bearers || []).reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+
+  const handleHppChange = (rawHpp: number) => {
+    const newHpp = Math.max(0, Number(rawHpp) || 0);
+    if (formData.hpp_payer === 'marketing') {
+      const specObj = marketingSpecialists.find((m) => m.id === formData.marketing_id);
+      setFormData({
+        ...formData,
+        hpp: newHpp,
+        hpp_marketing_amount: newHpp,
+        hpp_marketing_ratio: 100,
+        hpp_bearers: [
+          {
+            id: 'bearer-marketing',
+            type: 'marketing',
+            specialist_id: formData.marketing_id,
+            name: specObj?.name || 'Marketing Specialist',
+            amount: newHpp,
+            ratio: 100,
+            reimburse_status: 'unpaid',
+            profit_share_status: 'unpaid',
+          },
+        ],
+      });
+    } else if (formData.hpp_payer === 'platform') {
+      setFormData({
+        ...formData,
+        hpp: newHpp,
+        hpp_marketing_amount: 0,
+        hpp_marketing_ratio: 0,
+        hpp_bearers: [
+          {
+            id: 'bearer-platform',
+            type: 'platform',
+            specialist_id: null,
+            name: 'Platform / Agency (Kas Perusahaan)',
+            amount: newHpp,
+            ratio: 100,
+            reimburse_status: 'unpaid',
+            profit_share_status: 'unpaid',
+          },
+        ],
+      });
+    } else {
+      const current = formData.hpp_bearers || [];
+      const count = Math.max(2, current.length);
+      const base = Math.floor(newHpp / count);
+      const rem = newHpp % count;
+      const updated = (current.length >= 2 ? current : createDefaultSplitBearers(newHpp, formData.marketing_id)).map((b, i) => {
+        const amt = base + (i < rem ? 1 : 0);
+        return { ...b, amount: amt, ratio: newHpp > 0 ? (amt / newHpp) * 100 : 0 };
+      });
+      const mSum = updated.filter((b) => b.type === 'marketing').reduce((s, b) => s + b.amount, 0);
+      setFormData({
+        ...formData,
+        hpp: newHpp,
+        hpp_bearers: updated,
+        hpp_marketing_amount: mSum,
+        hpp_marketing_ratio: newHpp > 0 ? (mSum / newHpp) * 100 : 0,
+      });
+    }
+  };
 
   const handleBearerSelectionChange = (index: number, selectedValue: string) => {
     const updated = [...(formData.hpp_bearers || [])];
@@ -594,95 +656,61 @@ export function AdminVenueModal({
 
             {/* Financials: Harga Jual & HPP Per Transaksi */}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700">
-                  Harga Jual ke Klien (Rp) *
-                </label>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  value={formData.deal_amount}
-                  onChange={(e) => setFormData({ ...formData, deal_amount: Number(e.target.value) })}
-                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
-                  placeholder="599000"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">Nilai total closing deal.</p>
-              </div>
+              <CurrencyInput
+                label="Harga Jual ke Klien (Rp)"
+                required
+                value={formData.deal_amount}
+                onChange={(val) => setFormData({ ...formData, deal_amount: val })}
+                placeholder="599.000"
+                presets={[399000, 499000, 599000, 799000]}
+                showTerbilang
+                colorScheme="lime"
+                helpText="Nilai total closing deal penjualan stand."
+              />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700">
-                  HPP / Modal Produksi (Rp) *
-                </label>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  value={formData.hpp}
-                  onChange={(e) => {
-                    const newHpp = Math.max(0, Number(e.target.value) || 0);
-                    if (formData.hpp_payer === 'marketing') {
-                      const specObj = marketingSpecialists.find((m) => m.id === formData.marketing_id);
-                      setFormData({
-                        ...formData,
-                        hpp: newHpp,
-                        hpp_marketing_amount: newHpp,
-                        hpp_marketing_ratio: 100,
-                        hpp_bearers: [
-                          {
-                            id: 'bearer-marketing',
-                            type: 'marketing',
-                            specialist_id: formData.marketing_id,
-                            name: specObj?.name || 'Marketing Specialist',
-                            amount: newHpp,
-                            ratio: 100,
-                            reimburse_status: 'unpaid',
-                            profit_share_status: 'unpaid',
-                          },
-                        ],
-                      });
-                    } else if (formData.hpp_payer === 'platform') {
-                      setFormData({
-                        ...formData,
-                        hpp: newHpp,
-                        hpp_marketing_amount: 0,
-                        hpp_marketing_ratio: 0,
-                        hpp_bearers: [
-                          {
-                            id: 'bearer-platform',
-                            type: 'platform',
-                            specialist_id: null,
-                            name: 'Platform / Agency (Kas Perusahaan)',
-                            amount: newHpp,
-                            ratio: 100,
-                            reimburse_status: 'unpaid',
-                            profit_share_status: 'unpaid',
-                          },
-                        ],
-                      });
-                    } else {
-                      const current = formData.hpp_bearers || [];
-                      const count = Math.max(2, current.length);
-                      const base = Math.floor(newHpp / count);
-                      const rem = newHpp % count;
-                      const updated = (current.length >= 2 ? current : createDefaultSplitBearers(newHpp, formData.marketing_id)).map((b, i) => {
-                        const amt = base + (i < rem ? 1 : 0);
-                        return { ...b, amount: amt, ratio: newHpp > 0 ? (amt / newHpp) * 100 : 0 };
-                      });
-                      const mSum = updated.filter((b) => b.type === 'marketing').reduce((s, b) => s + b.amount, 0);
-                      setFormData({
-                        ...formData,
-                        hpp: newHpp,
-                        hpp_bearers: updated,
-                        hpp_marketing_amount: mSum,
-                        hpp_marketing_ratio: newHpp > 0 ? (mSum / newHpp) * 100 : 0,
-                      });
-                    }
-                  }}
-                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 focus:outline-none text-xs"
-                  placeholder="150000"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">Biaya cetak akrilik, chip NFC & packing.</p>
+              <CurrencyInput
+                label="HPP / Modal Produksi (Rp)"
+                required
+                value={formData.hpp}
+                onChange={handleHppChange}
+                placeholder="150.000"
+                presets={[100000, 150000, 200000]}
+                showTerbilang
+                colorScheme="amber"
+                helpText="Biaya cetak akrilik, chip NFC & packing unit."
+              />
+            </div>
+
+            {/* Option 4: Dual Visualizer (Live Profit Margin & Gross Profit Pill) */}
+            <div className="p-3 bg-gradient-to-r from-slate-50 via-emerald-50/50 to-slate-50 border border-emerald-200/80 rounded-2xl flex items-center justify-between flex-wrap gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-800 block">
+                    Margin Kotor Unit (Gross Profit)
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    Harga Jual (Rp {formData.deal_amount.toLocaleString('id-ID')}) − HPP (Rp {formData.hpp.toLocaleString('id-ID')})
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-black text-emerald-700 text-sm">
+                  Rp {Math.max(0, formData.deal_amount - formData.hpp).toLocaleString('id-ID')}
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                    formData.deal_amount > 0 && ((formData.deal_amount - formData.hpp) / formData.deal_amount) >= 0.5
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : formData.deal_amount > 0 && ((formData.deal_amount - formData.hpp) / formData.deal_amount) >= 0.2
+                      ? 'bg-amber-100 text-amber-800 border-amber-300'
+                      : 'bg-rose-100 text-rose-800 border-rose-300'
+                  }`}
+                >
+                  Margin {formData.deal_amount > 0 ? Math.round(((formData.deal_amount - formData.hpp) / formData.deal_amount) * 100) : 0}%
+                </span>
               </div>
             </div>
 
@@ -862,15 +890,13 @@ export function AdminVenueModal({
                                   {percentage}%
                                 </span>
                               </div>
-                              <input
-                                type="number"
-                                min="0"
-                                max={formData.hpp}
-                                step="1000"
+                              <CurrencyInput
                                 value={bearer.amount}
-                                onChange={(e) => handleBearerAmountChange(index, Number(e.target.value))}
-                                className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg font-bold text-slate-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                placeholder="50000"
+                                onChange={(val) => handleBearerAmountChange(index, val)}
+                                max={formData.hpp}
+                                colorScheme="indigo"
+                                showTerbilang={false}
+                                placeholder="50.000"
                               />
                             </div>
                           </div>
@@ -931,18 +957,16 @@ export function AdminVenueModal({
             </div>
 
             {formData.billing_type === 'subscription' ? (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700">Biaya Retainer / Bln (Rp)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.monthly_retainer_fee}
-                  onChange={(e) => setFormData({ ...formData, monthly_retainer_fee: Number(e.target.value) })}
-                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs font-bold"
-                  placeholder="149000"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">Tagihan perpanjangan rutin bulanan klien.</p>
-              </div>
+              <CurrencyInput
+                label="Biaya Retainer / Bln (Rp)"
+                value={formData.monthly_retainer_fee}
+                onChange={(val) => setFormData({ ...formData, monthly_retainer_fee: val })}
+                placeholder="149.000"
+                presets={[99000, 149000, 199000]}
+                showTerbilang
+                colorScheme="emerald"
+                helpText="Tagihan perpanjangan rutin bulanan klien."
+              />
             ) : (
               <div className="w-full bg-purple-50/70 border border-purple-200/80 rounded-xl p-2.5 text-[11px] text-purple-700 leading-tight flex items-center gap-2">
                 <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
@@ -977,30 +1001,16 @@ export function AdminVenueModal({
             </div>
 
             {/* Flat Transport Fee Marketing */}
-            <div>
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Uang Transportasi Flat Marketing (Rp)
-                </label>
-                <span className="text-[10px] text-slate-400">Default Rp 20.000</span>
-              </div>
-              <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Car className="w-4 h-4" />
-                </div>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.transport_fee}
-                  onChange={(e) => setFormData({ ...formData, transport_fee: Number(e.target.value) })}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
-                  placeholder="20000"
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1">
-                Diberikan langsung ke marketing specialist yang berhasil mencapai deal.
-              </p>
-            </div>
+            <CurrencyInput
+              label="Uang Transportasi Flat Marketing (Rp)"
+              value={formData.transport_fee}
+              onChange={(val) => setFormData({ ...formData, transport_fee: val })}
+              placeholder="20.000"
+              presets={[15000, 20000, 30000, 50000]}
+              showTerbilang
+              colorScheme="cyan"
+              helpText="Diberikan langsung ke marketing specialist yang berhasil mencapai deal closing."
+            />
 
             {/* Live Profit & Payout Breakdown Simulator */}
             <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50/90 space-y-2.5 text-xs">
