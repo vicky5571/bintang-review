@@ -646,14 +646,17 @@ export default function AdminPage() {
                         </td>
                         <td className="px-6 py-4 font-mono font-bold text-slate-600">{v.owner_access_pin}</td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-                              v.is_active ? 'text-emerald-600' : 'text-slate-400'
-                            }`}
-                          >
-                            <span className={`w-2 h-2 rounded-full ${v.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                            {v.is_active ? 'Aktif' : 'Non-Aktif'}
-                          </span>
+                          {v.google_review_url && v.google_review_url.trim() !== '' ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                              Aktif
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600">
+                              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                              Belum Aktif (Stok)
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-right space-x-1.5 sm:space-x-2">
                           {isSuperAdmin && (

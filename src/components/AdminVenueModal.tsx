@@ -36,7 +36,6 @@ export function AdminVenueModal({
     feedback_channels: FeedbackChannel;
     whatsapp_number: string;
     owner_access_pin: string;
-    is_active: boolean;
     marketing_id: string;
     deal_amount: number;
     hpp: number;
@@ -55,7 +54,6 @@ export function AdminVenueModal({
     feedback_channels: 'whatsapp',
     whatsapp_number: '',
     owner_access_pin: '1234',
-    is_active: true,
     marketing_id: '',
     deal_amount: 599000,
     hpp: 150000,
@@ -180,7 +178,6 @@ export function AdminVenueModal({
         feedback_channels: venue.feedback_channels,
         whatsapp_number: venue.whatsapp_number || '',
         owner_access_pin: venue.owner_access_pin,
-        is_active: venue.is_active,
         marketing_id: isMarketingSpecialistRole ? (currentSpecialistId || '') : (venue.marketing_id || venue.sales_id || ''),
         deal_amount: venue.deal_amount !== undefined ? Number(venue.deal_amount) : 599000,
         hpp: hppVal,
@@ -205,7 +202,6 @@ export function AdminVenueModal({
         feedback_channels: 'whatsapp',
         whatsapp_number: '',
         owner_access_pin: '1234',
-        is_active: true,
         marketing_id: defaultMarketingId,
         deal_amount: 599000,
         hpp: initialHpp,
@@ -242,10 +238,12 @@ export function AdminVenueModal({
       if (cleanReviewUrl && !/^https?:\/\//i.test(cleanReviewUrl)) {
         cleanReviewUrl = `https://${cleanReviewUrl}`;
       }
+      const isActive = Boolean(cleanReviewUrl);
       await onSave({
         ...(venue?.id ? { id: venue.id } : {}),
         ...formData,
         google_review_url: cleanReviewUrl,
+        is_active: isActive,
         sales_id: formData.marketing_id,
       });
     } catch (err: any) {
@@ -1099,15 +1097,20 @@ export function AdminVenueModal({
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="w-4 h-4 rounded text-[#84cc16] focus:ring-[#84cc16]"
-              />
-              <span className="text-xs font-medium text-slate-700">Status Stand Akrilik Aktif</span>
-            </label>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-500 font-medium">Status Otomatis:</span>
+              {(formData.google_review_url || '').trim() ? (
+                <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Aktif (Siap Pakai)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-amber-700 font-bold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  Belum Aktif (Stok)
+                </span>
+              )}
+            </div>
 
             <button
               type="submit"

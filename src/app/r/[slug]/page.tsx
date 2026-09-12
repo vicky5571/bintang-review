@@ -13,16 +13,16 @@ export default async function CustomerTapPage({ params }: PageProps) {
   const { slug } = await params;
   const venue = await dataStore.getVenueBySlug(slug);
 
-  if (!venue || !venue.is_active) {
+  if (!venue) {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
         <div className="max-w-md w-full bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 text-center">
           <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mx-auto mb-3">
             <Coffee className="w-6 h-6" />
           </div>
-          <h1 className="text-lg font-bold text-slate-800">Layanan Sedang Diperbarui</h1>
+          <h1 className="text-lg font-bold text-slate-800">Stand Tidak Ditemukan</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Silakan hubungi kasir atau staf cafe untuk informasi lebih lanjut.
+            Stand QR code ini tidak terdaftar di sistem.
           </p>
         </div>
       </main>

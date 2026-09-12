@@ -128,15 +128,18 @@ export async function POST(request: Request) {
 
     const cleanTransportFee = transport_fee !== undefined ? Math.max(0, Number(transport_fee)) : 20000;
 
+    const cleanGoogleUrl = (google_review_url || '').trim();
+    const isActive = cleanGoogleUrl.length > 0;
+
     const payload: any = {
       name: name.trim(),
       slug: slug.trim().toLowerCase().replace(/\s+/g, '-'),
-      google_review_url: (google_review_url || '').trim(),
+      google_review_url: cleanGoogleUrl,
       redirect_mode: redirect_mode || 'smart_funnel',
       feedback_channels: feedback_channels || 'whatsapp',
       whatsapp_number: whatsapp_number?.trim() || undefined,
       owner_access_pin: owner_access_pin.trim(),
-      is_active: is_active !== undefined ? Boolean(is_active) : true,
+      is_active: isActive,
       sales_id: assignedSpecialistId,
       marketing_id: assignedSpecialistId,
       deal_amount: cleanDealAmount,
