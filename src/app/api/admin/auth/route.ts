@@ -1,11 +1,22 @@
 import { NextResponse } from 'next/server';
 import { adminAuthLimiter, getClientIp } from '@/lib/rateLimit';
+import { getSessionFromRequest, SESSION_COOKIE_NAME as UNIFIED_COOKIE_NAME } from '@/lib/auth';
 
 const DEFAULT_ADMIN_PASS = 'bintang2026';
 const SESSION_COOKIE_NAME = 'admin_session';
 const SESSION_TOKEN = 'valid_admin_token';
 
 export async function GET(request: Request) {
+  const session = getSessionFromRequest(request);
+  if (session && session.authenticated) {
+    return NextResponse.json({
+      authenticated: true,
+      role: session.role || 'super_admin',
+      name: session.name || 'Super Admin',
+      user: session,
+    });
+  }
+
   const cookieHeader = request.headers.get('cookie') || '';
   const cookies = Object.fromEntries(
     cookieHeader
@@ -15,7 +26,24 @@ export async function GET(request: Request) {
   );
 
   const isAuthenticated = cookies[SESSION_COOKIE_NAME] === SESSION_TOKEN;
-  return NextResponse.json({ authenticated: isAuthenticated });
+  return NextResponse.json({
+    authenticated: isAuthenticated,
+    role: isAuthenticated ? 'super_admin' : undefined,
+    user: isAuthenticated ? { authenticated: true, role: 'super_admin', name: 'Super Admin' } : undefined,
+  });
+}
+
+export async function DELETE() {
+  const response = NextResponse.json({ success: true });
+  response.headers.append(
+    'Set-Cookie',
+    `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
+  );
+  response.headers.append(
+    'Set-Cookie',
+    `${UNIFIED_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
+  );
+  return response;
 }
 
 export async function POST(request: Request) {
@@ -25,12 +53,7 @@ export async function POST(request: Request) {
     const isLogout = searchParams.get('action') === 'logout' || body.action === 'logout';
 
     if (isLogout) {
-      const response = NextResponse.json({ success: true });
-      response.headers.set(
-        'Set-Cookie',
-        `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
-      );
-      return response;
+      return DELETE();
     }
 
     // Rate limiting: Anti-brute force against master admin password
@@ -74,11 +97,27 @@ export async function POST(request: Request) {
     // Success: Reset rate limiter counter for this IP
     adminAuthLimiter.reset(ip);
 
-    const response = NextResponse.json({ success: true });
-    // Set HTTP-only session cookie for 24 hours
-    response.headers.set(
+    const sessionData = {
+      authenticated: true,
+      role: 'super_admin' as const,
+      name: 'Super Admin',
+    };
+    const sessionValue = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+
+    const response = NextResponse.json({
+      success: true,
+      user: sessionData,
+      role: 'super_admin',
+    });
+
+    // Set HTTP-only session cookies for 24 hours
+    response.headers.append(
       'Set-Cookie',
       `${SESSION_COOKIE_NAME}=${SESSION_TOKEN}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`
+    );
+    response.headers.append(
+      'Set-Cookie',
+      `${UNIFIED_COOKIE_NAME}=${sessionValue}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`
     );
 
     return response;

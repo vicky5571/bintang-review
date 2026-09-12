@@ -52,16 +52,37 @@ export default function AdminPage() {
 
   const checkAuth = async () => {
     try {
-      const res = await fetch('/api/admin/auth');
+      // 1. Try unified auth session endpoint
+      const res = await fetch('/api/auth/me');
       const data = await res.json();
-      setIsAuthenticated(data.authenticated);
-      if (data.authenticated) {
-        setCurrentUser(data);
-        loadData(data);
+      if (data.authenticated && data.user) {
+        setIsAuthenticated(true);
+        setCurrentUser(data.user);
+        await loadData(data.user);
+        return;
       }
+
+      // 2. Fallback to /api/admin/auth
+      const resAdmin = await fetch('/api/admin/auth');
+      const dataAdmin = await resAdmin.json();
+      if (dataAdmin.authenticated) {
+        const userObj: AuthSession = dataAdmin.user || {
+          authenticated: true,
+          role: dataAdmin.role || 'super_admin',
+          name: dataAdmin.name || 'Super Admin',
+        };
+        setIsAuthenticated(true);
+        setCurrentUser(userObj);
+        await loadData(userObj);
+        return;
+      }
+
+      setIsAuthenticated(false);
+      setCurrentUser(null);
     } catch (err) {
       console.error('Error verifying auth:', err);
       setIsAuthenticated(false);
+      setCurrentUser(null);
     } finally {
       setAuthLoading(false);
     }
@@ -72,7 +93,14 @@ export default function AdminPage() {
   }, []);
 
   const handleLogout = async () => {
-    await fetch('/api/admin/auth', { method: 'DELETE' });
+    try {
+      await Promise.all([
+        fetch('/api/auth/me', { method: 'POST' }),
+        fetch('/api/admin/auth', { method: 'DELETE' }),
+      ]);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
     setIsAuthenticated(false);
     setCurrentUser(null);
   };
@@ -146,8 +174,14 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
       <AdminLoginModal
-        onSuccess={() => {
-          checkAuth();
+        onSuccess={(user) => {
+          if (user && user.role) {
+            setIsAuthenticated(true);
+            setCurrentUser(user);
+            loadData(user);
+          } else {
+            checkAuth();
+          }
         }}
       />
     );
