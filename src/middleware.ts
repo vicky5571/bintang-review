@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
         apikey: supabaseKey,
         Authorization: `Bearer ${supabaseKey}`,
       },
-      next: { revalidate: 30 }, // Cache on Edge for 30s
+      cache: 'no-store',
     });
 
     if (!res.ok) {

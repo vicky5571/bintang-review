@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       transport_fee,
       billing_type,
       monthly_retainer_fee,
+      deal_date,
     } = body;
 
     if (!name || !slug || !owner_access_pin) {
@@ -147,8 +148,13 @@ export async function POST(request: Request) {
       transport_fee: cleanTransportFee,
       billing_type: cleanBillingType,
       monthly_retainer_fee: cleanRetainer,
-      deal_date: new Date().toISOString().split('T')[0],
     };
+
+    if (deal_date) {
+      payload.deal_date = deal_date;
+    } else if (!id) {
+      payload.deal_date = new Date().toISOString().split('T')[0];
+    }
 
     let result;
     if (id) {

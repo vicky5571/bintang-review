@@ -243,6 +243,7 @@ export function AdminVenueModal({
         cleanReviewUrl = `https://${cleanReviewUrl}`;
       }
       await onSave({
+        ...(venue?.id ? { id: venue.id } : {}),
         ...formData,
         google_review_url: cleanReviewUrl,
         sales_id: formData.marketing_id,
@@ -1116,11 +1117,21 @@ export function AdminVenueModal({
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : venue ? (
-                <Save className="w-4 h-4" />
+                (!venue.google_review_url || venue.google_review_url.trim() === '') ? (
+                  <Zap className="w-4 h-4 text-amber-200" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )
               ) : (
                 <Plus className="w-4 h-4" />
               )}
-              {isSubmitting ? 'Menyimpan...' : venue ? 'Simpan Perubahan' : 'Buat Venue'}
+              {isSubmitting
+                ? 'Menyimpan...'
+                : venue
+                ? (!venue.google_review_url || venue.google_review_url.trim() === ''
+                    ? 'Aktivasi & Simpan Venue'
+                    : 'Simpan Perubahan')
+                : 'Buat Venue'}
             </button>
           </div>
         </form>

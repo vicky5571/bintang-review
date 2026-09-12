@@ -531,9 +531,15 @@ class StoreRepository {
             marketing_id: created.sales_id || sanitizedPayload.sales_id,
           } as Venue;
         }
-        if (error) console.warn('Supabase createVenue error:', error);
-      } catch (err) {
-        console.warn('Supabase createVenue error, using fallback:', err);
+        if (error) {
+          console.warn('Supabase createVenue error:', error);
+          if (error.code !== 'PGRST204') {
+            throw new Error(`Gagal menyimpan ke basis data: ${error.message || error.details || error.code}`);
+          }
+        }
+      } catch (err: any) {
+        console.warn('Supabase createVenue error:', err);
+        throw err;
       }
     }
     return this.inMemory.createVenue(sanitizedPayload);
@@ -643,9 +649,15 @@ class StoreRepository {
             marketing_id: updated.sales_id || sanitizedUpdates.sales_id,
           } as Venue;
         }
-        if (error) console.warn('Supabase updateVenue error:', error);
-      } catch (err) {
-        console.warn('Supabase updateVenue error, using fallback:', err);
+        if (error) {
+          console.warn('Supabase updateVenue error:', error);
+          if (error.code !== 'PGRST204') {
+            throw new Error(`Gagal memperbarui basis data: ${error.message || error.details || error.code}`);
+          }
+        }
+      } catch (err: any) {
+        console.warn('Supabase updateVenue error:', err);
+        throw err;
       }
     }
     return this.inMemory.updateVenue(id, sanitizedUpdates);

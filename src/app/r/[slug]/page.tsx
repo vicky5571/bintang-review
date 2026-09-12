@@ -3,6 +3,8 @@ import { dataStore } from '@/lib/store';
 import { FunnelRating } from '@/components/FunnelRating';
 import { Coffee, Box, Zap, PhoneCall } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
