@@ -150,6 +150,7 @@ export default function AdminPage() {
                   <th className="px-6 py-3.5">Nama Venue</th>
                   <th className="px-6 py-3.5">Slug & Tap Link</th>
                   <th className="px-6 py-3.5">Mode</th>
+                  <th className="px-6 py-3.5">Paket</th>
                   <th className="px-6 py-3.5">PIN Owner</th>
                   <th className="px-6 py-3.5">Status</th>
                   <th className="px-6 py-3.5 text-right">Aksi</th>
@@ -179,6 +180,17 @@ export default function AdminPage() {
                       >
                         {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {v.billing_type === 'one_time' || v.monthly_retainer_fee === 0 ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-semibold border border-purple-200/80">
+                          💎 Lifetime
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-semibold border border-blue-200/80">
+                          🔄 Rp {(v.monthly_retainer_fee || 0).toLocaleString('id-ID')}/bln
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 font-mono font-bold text-slate-600">{v.owner_access_pin}</td>
                     <td className="px-6 py-4">

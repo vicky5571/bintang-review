@@ -15,6 +15,7 @@ export interface SalesAgent {
 
 export type SubscriptionStatus = 'active' | 'pending_verification' | 'expired';
 export type PaymentStatus = 'pending' | 'approved' | 'rejected';
+export type BillingType = 'one_time' | 'subscription';
 
 export interface Venue {
   id: string;
@@ -32,6 +33,7 @@ export interface Venue {
   deal_amount: number;
   monthly_retainer_fee: number;
   deal_date: string;
+  billing_type?: BillingType;
   subscription_status?: SubscriptionStatus;
   subscription_until?: string;
   created_at: string;

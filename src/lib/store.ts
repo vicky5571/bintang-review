@@ -41,6 +41,9 @@ class InMemoryStore {
       deal_amount: 599000,
       monthly_retainer_fee: 49000,
       deal_date: new Date().toISOString().split('T')[0],
+      billing_type: 'subscription',
+      subscription_status: 'active',
+      subscription_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -71,8 +74,17 @@ class InMemoryStore {
   }
 
   async createVenue(data: Omit<Venue, 'id' | 'created_at' | 'updated_at'>): Promise<Venue> {
+    const billing_type = data.billing_type || (data.monthly_retainer_fee === 0 ? 'one_time' : 'subscription');
     const newVenue: Venue = {
       ...data,
+      billing_type,
+      monthly_retainer_fee: billing_type === 'one_time' ? 0 : data.monthly_retainer_fee,
+      subscription_status: data.subscription_status || 'active',
+      subscription_until:
+        data.subscription_until ||
+        (billing_type === 'subscription'
+          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          : undefined),
       id: `venue-${Date.now()}`,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -84,9 +96,13 @@ class InMemoryStore {
   async updateVenue(id: string, updates: Partial<Venue>): Promise<Venue | null> {
     const index = this.venues.findIndex((v) => v.id === id);
     if (index === -1) return null;
+    const current = this.venues[index];
+    const billing_type = updates.billing_type || current.billing_type || (updates.monthly_retainer_fee === 0 ? 'one_time' : 'subscription');
     this.venues[index] = {
-      ...this.venues[index],
+      ...current,
       ...updates,
+      billing_type,
+      monthly_retainer_fee: billing_type === 'one_time' ? 0 : (updates.monthly_retainer_fee !== undefined ? updates.monthly_retainer_fee : current.monthly_retainer_fee),
       updated_at: new Date().toISOString(),
     };
     return { ...this.venues[index] };
@@ -278,12 +294,25 @@ class StoreRepository {
   }
 
   async createVenue(data: Omit<Venue, 'id' | 'created_at' | 'updated_at'>): Promise<Venue> {
+    const billing_type = data.billing_type || (data.monthly_retainer_fee === 0 ? 'one_time' : 'subscription');
+    const payload = {
+      ...data,
+      billing_type,
+      monthly_retainer_fee: billing_type === 'one_time' ? 0 : data.monthly_retainer_fee,
+      subscription_status: data.subscription_status || 'active',
+      subscription_until:
+        data.subscription_until ||
+        (billing_type === 'subscription'
+          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          : undefined),
+    };
+
     const client = supabaseAdmin || supabase;
     if (isSupabaseConfigured && client) {
       try {
         const { data: created, error } = await client
           .from('venues')
-          .insert([data])
+          .insert([payload])
           .select()
           .single();
 
@@ -292,7 +321,7 @@ class StoreRepository {
         console.warn('Supabase createVenue error, using fallback:', err);
       }
     }
-    return this.inMemory.createVenue(data);
+    return this.inMemory.createVenue(payload);
   }
 
   async updateVenue(id: string, updates: Partial<Venue>): Promise<Venue | null> {

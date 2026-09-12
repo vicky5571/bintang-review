@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Venue, SalesAgentSummary, RedirectMode, FeedbackChannel } from '@/lib/types';
-import { X, Save, Plus } from 'lucide-react';
+import { Venue, SalesAgentSummary, RedirectMode, FeedbackChannel, BillingType } from '@/lib/types';
+import { X, Save, Plus, Calendar, ShieldCheck, Sparkles } from 'lucide-react';
 
 interface AdminVenueModalProps {
   venue: Venue | null;
@@ -24,6 +24,7 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
     is_active: boolean;
     sales_id: string;
     deal_amount: number;
+    billing_type: BillingType;
     monthly_retainer_fee: number;
   }>({
     name: '',
@@ -36,11 +37,13 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
     is_active: true,
     sales_id: '',
     deal_amount: 599000,
-    monthly_retainer_fee: 49000,
+    billing_type: 'subscription',
+    monthly_retainer_fee: 149000,
   });
 
   useEffect(() => {
     if (venue) {
+      const isOneTime = venue.billing_type === 'one_time' || venue.monthly_retainer_fee === 0;
       setFormData({
         name: venue.name,
         slug: venue.slug,
@@ -52,7 +55,8 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
         is_active: venue.is_active,
         sales_id: venue.sales_id || '',
         deal_amount: venue.deal_amount,
-        monthly_retainer_fee: venue.monthly_retainer_fee,
+        billing_type: isOneTime ? 'one_time' : 'subscription',
+        monthly_retainer_fee: isOneTime ? 0 : (venue.monthly_retainer_fee || 149000),
       });
     } else {
       setFormData({
@@ -66,7 +70,8 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
         is_active: true,
         sales_id: salesAgents[0]?.id || '',
         deal_amount: 599000,
-        monthly_retainer_fee: 49000,
+        billing_type: 'subscription',
+        monthly_retainer_fee: 149000,
       });
     }
   }, [venue, salesAgents]);
@@ -179,8 +184,75 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+          <div className="pt-2 border-t border-slate-100 space-y-3">
             <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Model Pembayaran Klien</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, billing_type: 'subscription', monthly_retainer_fee: formData.monthly_retainer_fee || 149000 })}
+                  className={`p-2.5 rounded-xl border text-left flex flex-col transition ${
+                    formData.billing_type === 'subscription'
+                      ? 'border-[#00c48c] bg-emerald-50/50 text-slate-900 ring-1 ring-[#00c48c]'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="text-xs font-bold flex items-center gap-1.5">
+                    🔄 Langganan Bulanan
+                  </span>
+                  <span className="text-[11px] text-slate-500 mt-0.5">Biaya setup + iuran retainer</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, billing_type: 'one_time', monthly_retainer_fee: 0 })}
+                  className={`p-2.5 rounded-xl border text-left flex flex-col transition ${
+                    formData.billing_type === 'one_time'
+                      ? 'border-purple-500 bg-purple-50/50 text-slate-900 ring-1 ring-purple-500'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="text-xs font-bold flex items-center gap-1.5">
+                    💎 Sekali Bayar (Lifetime)
+                  </span>
+                  <span className="text-[11px] text-slate-500 mt-0.5">Beli alat sekali, aktif selamanya</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600">Harga Beli Alat / Setup (Rp)</label>
+                <input
+                  type="number"
+                  value={formData.deal_amount}
+                  onChange={(e) => setFormData({ ...formData, deal_amount: Number(e.target.value) })}
+                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
+                  placeholder="599000"
+                />
+              </div>
+
+              {formData.billing_type === 'subscription' ? (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600">Biaya Retainer / Bln (Rp)</label>
+                  <input
+                    type="number"
+                    value={formData.monthly_retainer_fee}
+                    onChange={(e) => setFormData({ ...formData, monthly_retainer_fee: Number(e.target.value) })}
+                    className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
+                    placeholder="149000"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <div className="w-full bg-purple-50/70 border border-purple-200/80 rounded-xl p-2.5 text-[11px] text-purple-700 leading-tight">
+                    ✨ <strong>Bebas Iuran</strong> — Akrilik aktif seumur hidup tanpa tagihan perpanjangan.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-1">
               <label className="block text-xs font-semibold text-slate-600">Sales Agent Attribution</label>
               <select
                 value={formData.sales_id}
@@ -194,16 +266,6 @@ export function AdminVenueModal({ venue, isOpen, salesAgents, onClose, onSave }:
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600">Deal Package Amount (Rp)</label>
-              <input
-                type="number"
-                value={formData.deal_amount}
-                onChange={(e) => setFormData({ ...formData, deal_amount: Number(e.target.value) })}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
-                placeholder="599000"
-              />
             </div>
           </div>
 

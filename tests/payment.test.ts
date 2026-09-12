@@ -82,4 +82,37 @@ describe('Manual Payment & Subscription Verification Flow', () => {
     const updatedVenue = await dataStore.getVenueById(venue!.id);
     expect(updatedVenue?.subscription_status).toBe('expired');
   });
+
+  it('should create one-time lifetime venue with zero monthly retainer fee', async () => {
+    const venue = await dataStore.createVenue({
+      slug: 'kafe-lifetime-jaya',
+      name: 'Kafe Lifetime Jaya',
+      google_review_url: 'https://maps.google.com/review',
+      redirect_mode: 'smart_funnel',
+      feedback_channels: 'whatsapp',
+      whatsapp_number: '628111222333',
+      owner_access_pin: '8888',
+      is_active: true,
+      deal_amount: 499000,
+      monthly_retainer_fee: 0,
+      deal_date: '2026-09-12',
+      billing_type: 'one_time',
+    });
+
+    expect(venue.billing_type).toBe('one_time');
+    expect(venue.monthly_retainer_fee).toBe(0);
+    expect(venue.subscription_status).toBe('active');
+  });
+
+  it('should support switching venue billing type between subscription and one-time', async () => {
+    const venue = await dataStore.getVenueBySlug('kopi-senja');
+    expect(venue).not.toBeNull();
+
+    const updated = await dataStore.updateVenue(venue!.id, {
+      billing_type: 'one_time',
+    });
+
+    expect(updated?.billing_type).toBe('one_time');
+    expect(updated?.monthly_retainer_fee).toBe(0);
+  });
 });
