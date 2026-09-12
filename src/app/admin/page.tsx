@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Venue, SalesAgentSummary, PaymentConfirmation } from '@/lib/types';
+import { Venue, SalesAgent, SalesAgentSummary, PaymentConfirmation } from '@/lib/types';
 import { dataStore } from '@/lib/store';
-import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, QrCode, ExternalLink, DollarSign, Store, LogOut, CreditCard, CheckCircle, XCircle, Clock, UserPlus } from 'lucide-react';
 import { AdminVenueModal } from '@/components/AdminVenueModal';
+import { AdminSalesAgentModal } from '@/components/AdminSalesAgentModal';
 import { QrGeneratorModal } from '@/components/QrGeneratorModal';
 import { AdminLoginModal } from '@/components/AdminLoginModal';
 
@@ -18,6 +19,7 @@ export default function AdminPage() {
   const [selectedVenueForQr, setSelectedVenueForQr] = useState<Venue | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
 
   const loadData = async () => {
     const vList = await dataStore.listVenues();
@@ -73,6 +75,12 @@ export default function AdminPage() {
 
   const handleVerifyPayment = async (id: string, status: 'approved' | 'rejected') => {
     await dataStore.verifyPaymentConfirmation(id, status, 'Diverifikasi oleh Super Admin');
+    await loadData();
+  };
+
+  const handleSaveSalesAgent = async (formData: Omit<SalesAgent, 'id' | 'created_at'>) => {
+    await dataStore.createSalesAgent(formData);
+    setIsSalesModalOpen(false);
     await loadData();
   };
 
@@ -339,9 +347,18 @@ export default function AdminPage() {
 
         {/* Sales & Commission Dashboard */}
         <section className="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <DollarSign className="w-5 h-5 text-[#84cc16]" />
-            <h2 className="font-bold text-slate-800">Mesin Komisi Sales & Referral Partner</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-[#84cc16]" />
+              <h2 className="font-bold text-slate-800 text-sm sm:text-base">Mesin Komisi Sales & Referral Partner</h2>
+            </div>
+            <button
+              onClick={() => setIsSalesModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/15 transition active:scale-95 w-fit"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Tambah Marketing
+            </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -350,7 +367,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-slate-900">{agent.name}</h3>
                   <span className="text-xs bg-gradient-to-r from-lime-50 to-cyan-50 text-slate-800 border border-emerald-200/80 px-2.5 py-0.5 rounded-full font-bold">
-                    {agent.commission_rate}%
+                    {agent.commission_type === 'percentage' ? `${agent.commission_rate}%` : `Rp ${agent.commission_rate.toLocaleString('id-ID')}`}
                   </span>
                 </div>
                 <div className="text-xs text-slate-500">Venue Terjual: {agent.total_venues} kafe</div>
@@ -376,6 +393,13 @@ export default function AdminPage() {
           setSelectedVenueForEdit(null);
         }}
         onSave={handleSaveVenue}
+      />
+
+      {/* Sales Agent Creation Modal */}
+      <AdminSalesAgentModal
+        isOpen={isSalesModalOpen}
+        onClose={() => setIsSalesModalOpen(false)}
+        onSave={handleSaveSalesAgent}
       />
 
       {/* QR & NFC Asset Viewer */}

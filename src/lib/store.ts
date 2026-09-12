@@ -176,6 +176,17 @@ class InMemoryStore {
     });
   }
 
+  async createSalesAgent(data: Omit<SalesAgent, 'id' | 'created_at'>): Promise<SalesAgent> {
+    const newAgent: SalesAgent = {
+      ...data,
+      id: `agent-${Date.now()}`,
+      is_active: data.is_active !== undefined ? data.is_active : true,
+      created_at: new Date().toISOString(),
+    };
+    this.salesAgents.push(newAgent);
+    return { ...newAgent };
+  }
+
   async submitPaymentConfirmation(
     data: Omit<PaymentConfirmation, 'id' | 'status' | 'created_at' | 'verified_at' | 'verified_notes'>
   ): Promise<PaymentConfirmation> {
@@ -460,6 +471,33 @@ class StoreRepository {
       }
     }
     return this.inMemory.listSalesAgents();
+  }
+
+  async createSalesAgent(data: Omit<SalesAgent, 'id' | 'created_at'>): Promise<SalesAgent> {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
+      try {
+        const { data: created, error } = await client
+          .from('sales_agents')
+          .insert([
+            {
+              name: data.name,
+              phone_whatsapp: data.phone_whatsapp,
+              email: data.email || null,
+              commission_type: data.commission_type || 'percentage',
+              commission_rate: data.commission_rate || 20,
+              is_active: data.is_active !== undefined ? data.is_active : true,
+            },
+          ])
+          .select()
+          .single();
+
+        if (!error && created) return created as SalesAgent;
+      } catch (err) {
+        console.warn('Supabase createSalesAgent error, using fallback:', err);
+      }
+    }
+    return this.inMemory.createSalesAgent(data);
   }
 
   async submitPaymentConfirmation(

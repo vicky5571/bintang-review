@@ -122,4 +122,25 @@ describe('Admin Management & Auth Operations', () => {
     expect(body.error).toMatch(/Terlalu banyak percobaan gagal/i);
     expect(blockedRes.headers.get('Retry-After')).toBeDefined();
   });
+
+  it('should create a new marketing specialist sales agent and list in commission overview', async () => {
+    const agent = await dataStore.createSalesAgent({
+      name: 'Rian Pratama',
+      phone_whatsapp: '6281299988877',
+      email: 'rian@example.com',
+      commission_type: 'percentage',
+      commission_rate: 25,
+      is_active: true,
+    });
+
+    expect(agent.id).toBeDefined();
+    expect(agent.name).toBe('Rian Pratama');
+    expect(agent.commission_rate).toBe(25);
+
+    const list = await dataStore.listSalesAgents();
+    const found = list.find((a) => a.id === agent.id);
+    expect(found).toBeDefined();
+    expect(found?.name).toBe('Rian Pratama');
+    expect(found?.commission_rate).toBe(25);
+  });
 });
