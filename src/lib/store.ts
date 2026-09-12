@@ -327,11 +327,29 @@ class StoreRepository {
     const client = supabaseAdmin || supabase;
     if (isSupabaseConfigured && client) {
       try {
-        const { data: created, error } = await client
+        let { data: created, error } = await client
           .from('venues')
           .insert([sanitizedPayload])
           .select()
           .single();
+
+        if (error && error.code === 'PGRST204') {
+          const { billing_type, subscription_status, subscription_until, ...compatiblePayload } = sanitizedPayload;
+          const retry = await client
+            .from('venues')
+            .insert([compatiblePayload])
+            .select()
+            .single();
+
+          if (!retry.error && retry.data) {
+            return {
+              ...retry.data,
+              billing_type: sanitizedPayload.billing_type,
+              subscription_status: sanitizedPayload.subscription_status,
+              subscription_until: sanitizedPayload.subscription_until,
+            } as Venue;
+          }
+        }
 
         if (!error && created) return created as Venue;
         if (error) console.warn('Supabase createVenue error:', error);
@@ -354,12 +372,29 @@ class StoreRepository {
     const client = supabaseAdmin || supabase;
     if (isSupabaseConfigured && client) {
       try {
-        const { data: updated, error } = await client
+        let { data: updated, error } = await client
           .from('venues')
           .update(sanitizedUpdates)
           .eq('id', id)
           .select()
           .single();
+
+        if (error && error.code === 'PGRST204') {
+          const { billing_type, subscription_status, subscription_until, ...compatibleUpdates } = sanitizedUpdates;
+          const retry = await client
+            .from('venues')
+            .update(compatibleUpdates)
+            .eq('id', id)
+            .select()
+            .single();
+
+          if (!retry.error && retry.data) {
+            return {
+              ...retry.data,
+              ...sanitizedUpdates,
+            } as Venue;
+          }
+        }
 
         if (!error && updated) return updated as Venue;
         if (error) console.warn('Supabase updateVenue error:', error);
