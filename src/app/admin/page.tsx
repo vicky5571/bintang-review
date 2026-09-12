@@ -95,6 +95,22 @@ export default function AdminPage() {
     checkAuth();
   }, []);
 
+  // Detect ?activate=slug from scanning stand or direct link
+  useEffect(() => {
+    if (typeof window !== 'undefined' && venues.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const activateSlug = params.get('activate');
+      if (activateSlug) {
+        const target = venues.find((v) => v.slug === activateSlug);
+        if (target) {
+          setSelectedVenueForEdit(target);
+          setIsModalOpen(true);
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }
+    }
+  }, [venues]);
+
   const handleLogout = async () => {
     try {
       await Promise.all([
@@ -538,7 +554,7 @@ export default function AdminPage() {
                             {!v.google_review_url || v.google_review_url.trim() === '' ? (
                               <span className="inline-flex items-center gap-1 text-[10px] text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md font-semibold">
                                 <Box className="w-3 h-3 text-amber-700" />
-                                Stok Siap Pakai
+                                Stok Belum Diaktivasi
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
@@ -651,6 +667,19 @@ export default function AdminPage() {
                             >
                               <Wallet className="w-3.5 h-3.5 text-emerald-600" />
                               <span>Pelunasan</span>
+                            </button>
+                          )}
+                          {(!v.google_review_url || v.google_review_url.trim() === '') && (
+                            <button
+                              onClick={() => {
+                                setSelectedVenueForEdit(v);
+                                setIsModalOpen(true);
+                              }}
+                              className="px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs rounded-lg transition inline-flex items-center gap-1 shadow-sm"
+                              title="Aktivasi QR: Masukkan tautan Google Review klien"
+                            >
+                              <Zap className="w-3.5 h-3.5" />
+                              <span>Aktivasi QR</span>
                             </button>
                           )}
                           <button

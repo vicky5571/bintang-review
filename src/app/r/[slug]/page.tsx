@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { dataStore } from '@/lib/store';
 import { FunnelRating } from '@/components/FunnelRating';
-import { Coffee, Box } from 'lucide-react';
+import { Coffee, Box, Zap, PhoneCall } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -27,7 +27,7 @@ export default async function CustomerTapPage({ params }: PageProps) {
     );
   }
 
-  // Unconfigured Stock QR Stand (Belum Laku / Menunggu Aktivasi Klien)
+  // Unconfigured Stock QR Stand (Menunggu Aktivasi oleh Marketing Specialist atau Super Admin)
   if (!venue.google_review_url || venue.google_review_url.trim() === '') {
     return (
       <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
@@ -38,13 +38,13 @@ export default async function CustomerTapPage({ params }: PageProps) {
           <div className="space-y-1.5">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide uppercase text-amber-800 bg-amber-100/80 px-3 py-1 rounded-full border border-amber-200/80">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Stok Stand Akrilik Siap Pakai
+              Stok Stand Belum Diaktivasi
             </span>
             <h1 className="text-xl font-black text-slate-900 pt-1 tracking-tight">
-              QR Code Belum Dihubungkan
+              Menunggu Aktivasi QR Code
             </h1>
             <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
-              Unit stand akrilik ini adalah stok fisik siap pakai dan belum dihubungkan ke link Google Review kafe/toko Anda.
+              Stand akrilik pintar ini belum dihubungkan ke tautan Google Review. Aktivasi dan konfigurasi URL dilakukan oleh <strong>Marketing Specialist</strong> penanggung jawab atau <strong>Super Admin</strong>.
             </p>
           </div>
 
@@ -58,21 +58,37 @@ export default async function CustomerTapPage({ params }: PageProps) {
               <span className="font-semibold text-slate-700 truncate max-w-[200px]">{venue.name}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">Status:</span>
-              <span className="text-amber-600 font-bold text-[11px]">Menunggu Pembeli / Aktivasi</span>
+              <span className="text-slate-400">Status Aktivasi:</span>
+              <span className="text-amber-600 font-bold text-[11px]">Belum Diaktivasi</span>
             </div>
           </div>
 
-          <div className="pt-2 space-y-2">
+          <div className="pt-2 space-y-3">
             <a
-              href={`/portal/${venue.slug}`}
-              className="inline-flex items-center justify-center w-full px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-[0.98]"
+              href={`/admin?activate=${venue.slug}`}
+              className="inline-flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition active:scale-[0.98] gap-1.5"
             >
-              Aktivasi di Portal Pemilik
+              <Zap className="w-4 h-4" />
+              Login & Aktivasi (Marketing / Admin)
             </a>
-            <p className="text-[10px] text-slate-400">
-              Admin atau Marketing Specialist dapat mengisi URL kapan saja melalui dashboard admin.
-            </p>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-500 leading-relaxed text-center">
+              <p className="font-semibold text-slate-700 mb-0.5">Pemilik Kafe / Venue?</p>
+              <p>
+                Jika Anda telah menerima stand ini, hubungi Marketing Specialist Anda atau Tim Bintang Review untuk aktivasi tautan Google Review bisnis Anda.
+              </p>
+              <a
+                href={`https://wa.me/628123456789?text=${encodeURIComponent(
+                  `Halo Bintang Review, saya pemilik venue untuk stand kode /r/${venue.slug} (${venue.name}). Mohon dibantu aktivasi tautan Google Review kami.`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex items-center justify-center gap-1.5 text-emerald-700 font-bold hover:underline"
+              >
+                <PhoneCall className="w-3.5 h-3.5" />
+                Hubungi WhatsApp Support
+              </a>
+            </div>
           </div>
         </div>
 

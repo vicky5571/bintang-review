@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Venue, MarketingSpecialistSummary, RedirectMode, FeedbackChannel, BillingType, UserRole, HppPayerType, HppBearer } from '@/lib/types';
 import { calculateProfitDistribution } from '@/lib/profitSharing';
-import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent, Trash2, PlusCircle, CheckCircle2, AlertTriangle, Users, Info, RefreshCw, Gem, Scale, Loader2 } from 'lucide-react';
+import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent, Trash2, PlusCircle, CheckCircle2, AlertTriangle, Users, Info, RefreshCw, Gem, Scale, Loader2, Zap } from 'lucide-react';
 
 interface AdminVenueModalProps {
   venue: Venue | null;
@@ -439,6 +439,15 @@ export function AdminVenueModal({
           </div>
         )}
 
+        {venue && (!venue.google_review_url || venue.google_review_url.trim() === '') && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-900 font-medium">
+            <Zap className="w-4 h-4 text-amber-600 shrink-0" />
+            <div>
+              <span className="font-bold">Aktivasi Stand QR:</span> Masukkan tautan Google Review klien di bawah untuk mengaktifkan stand ini.
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 text-sm">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -468,23 +477,29 @@ export function AdminVenueModal({
           <div>
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold text-slate-700">
-                Google Review Write URL (Opsional)
+                Google Review Write URL (Tautan Ulasan Google)
               </label>
-              <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-medium">
-                Bisa dikosongkan untuk stok
+              <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium ${
+                !formData.google_review_url ? 'bg-amber-100 text-amber-800 font-bold' : 'bg-slate-100 text-slate-500'
+              }`}>
+                {!formData.google_review_url ? 'Belum Diaktivasi (Stok)' : 'Telah Terhubung'}
               </span>
             </div>
             <input
               type="text"
               value={formData.google_review_url}
               onChange={(e) => setFormData({ ...formData, google_review_url: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-mono text-xs focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
+              className={`mt-1 w-full px-3 py-2 border rounded-xl font-mono text-xs focus:ring-2 focus:ring-lime-500/20 focus:outline-none ${
+                !formData.google_review_url && venue
+                  ? 'border-amber-400 bg-amber-50/30 focus:border-amber-500'
+                  : 'border-slate-200 focus:border-[#84cc16]'
+              }`}
               placeholder="https://search.google.com/local/writereview?placeid=... (Kosongkan jika stok belum laku)"
             />
             <div className="flex items-start gap-1.5 text-[10px] text-slate-500 mt-1.5">
               <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
               <p>
-                <strong>Alur Stok QR Akrilik:</strong> Anda dapat membuat QR code fisik terlebih dahulu tanpa mengisi URL. Saat stand sudah laku terjual ke klien, URL dapat diisi kapan saja melalui tombol Edit.
+                <strong>Aktivasi oleh Marketing / Admin:</strong> Masukkan URL Google Review klien di sini untuk mengaktifkan stand ini. Saat membuat stok fisik baru, kolom ini dapat dikosongkan terlebih dahulu dan diaktifkan saat unit terjual.
               </p>
             </div>
           </div>
