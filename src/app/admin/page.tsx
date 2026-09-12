@@ -206,6 +206,8 @@ export default function AdminPage() {
       hpp_payer: v.hpp_payer,
       hpp_marketing_ratio: v.hpp_marketing_ratio,
       hpp_marketing_amount: v.hpp_marketing_amount,
+      hpp_bearers: v.hpp_bearers,
+      closing_specialist_id: v.sales_id || v.marketing_id,
       transport_fee: v.transport_fee,
     });
     const settlement = calculateVenueSettlement(v);
@@ -464,6 +466,8 @@ export default function AdminPage() {
                       hpp_payer: v.hpp_payer,
                       hpp_marketing_ratio: v.hpp_marketing_ratio,
                       hpp_marketing_amount: v.hpp_marketing_amount,
+                      hpp_bearers: v.hpp_bearers,
+                      closing_specialist_id: v.sales_id || v.marketing_id,
                       transport_fee: v.transport_fee,
                     });
                     const settlement = item ? item.settlement : calculateVenueSettlement(v);
@@ -555,11 +559,17 @@ export default function AdminPage() {
 
                             {/* Penanggung HPP info */}
                             <div className="text-[10px] text-slate-400">
-                              {v.hpp_payer === 'platform'
-                                ? 'Modal: 100% Platform'
-                                : v.hpp_payer === 'split'
-                                ? `Modal: Split (Rp ${dist.reimburse_marketing.toLocaleString('id-ID')} : Rp ${dist.reimburse_platform.toLocaleString('id-ID')})`
-                                : 'Modal: 100% Marketing'}
+                              {v.hpp_bearers && v.hpp_bearers.length > 1 ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-medium border border-indigo-100">
+                                  👥 Split {v.hpp_bearers.length} Pihak
+                                </span>
+                              ) : v.hpp_payer === 'platform' ? (
+                                'Modal: 100% Platform'
+                              ) : v.hpp_payer === 'split' ? (
+                                `Modal: Split (Rp ${dist.reimburse_marketing.toLocaleString('id-ID')} : Rp ${dist.reimburse_platform.toLocaleString('id-ID')})`
+                              ) : (
+                                'Modal: 100% Marketing'
+                              )}
                             </div>
                           </div>
                         </td>

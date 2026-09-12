@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Venue, MarketingSpecialistSummary, RedirectMode, FeedbackChannel, BillingType, UserRole, HppPayerType } from '@/lib/types';
+import { Venue, MarketingSpecialistSummary, RedirectMode, FeedbackChannel, BillingType, UserRole, HppPayerType, HppBearer } from '@/lib/types';
 import { calculateProfitDistribution } from '@/lib/profitSharing';
-import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent } from 'lucide-react';
+import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent, Trash2, PlusCircle, CheckCircle2, AlertTriangle, Users } from 'lucide-react';
 
 interface AdminVenueModalProps {
   venue: Venue | null;
@@ -41,6 +41,7 @@ export function AdminVenueModal({
     hpp_payer: HppPayerType;
     hpp_marketing_ratio: number;
     hpp_marketing_amount?: number;
+    hpp_bearers: HppBearer[];
     transport_fee: number;
     billing_type: BillingType;
     monthly_retainer_fee: number;
@@ -59,10 +60,40 @@ export function AdminVenueModal({
     hpp_payer: 'marketing',
     hpp_marketing_ratio: 100,
     hpp_marketing_amount: 150000,
+    hpp_bearers: [],
     transport_fee: 20000,
     billing_type: 'subscription',
     monthly_retainer_fee: 149000,
   });
+
+  const createDefaultSplitBearers = (hppVal: number, initialSpecialistId?: string): HppBearer[] => {
+    const primarySpec = marketingSpecialists.find((m) => m.id === initialSpecialistId) || marketingSpecialists[0];
+    const half1 = Math.round(hppVal * 0.5);
+    const half2 = hppVal - half1;
+
+    return [
+      {
+        id: `bearer-1-${Date.now()}`,
+        type: primarySpec ? 'marketing' : 'platform',
+        specialist_id: primarySpec ? primarySpec.id : null,
+        name: primarySpec ? primarySpec.name : 'Marketing Specialist',
+        amount: half1,
+        ratio: hppVal > 0 ? (half1 / hppVal) * 100 : 50,
+        reimburse_status: 'unpaid',
+        profit_share_status: 'unpaid',
+      },
+      {
+        id: `bearer-2-${Date.now() + 1}`,
+        type: 'platform',
+        specialist_id: null,
+        name: 'Platform / Agency (Kas Perusahaan)',
+        amount: half2,
+        ratio: hppVal > 0 ? (half2 / hppVal) * 100 : 50,
+        reimburse_status: 'unpaid',
+        profit_share_status: 'unpaid',
+      },
+    ];
+  };
 
   useEffect(() => {
     const defaultMarketingId = isMarketingSpecialistRole
@@ -71,6 +102,70 @@ export function AdminVenueModal({
 
     if (venue) {
       const isOneTime = venue.billing_type === 'one_time' || venue.monthly_retainer_fee === 0;
+      const hppVal = venue.hpp !== undefined && venue.hpp !== null ? Number(venue.hpp) : 150000;
+      const payer = venue.hpp_payer || 'marketing';
+
+      let initialBearers: HppBearer[] = [];
+      if (venue.hpp_bearers && Array.isArray(venue.hpp_bearers) && venue.hpp_bearers.length > 0) {
+        initialBearers = venue.hpp_bearers.map((b) => ({ ...b }));
+      } else if (payer === 'split') {
+        const mAmount = venue.hpp_marketing_amount !== undefined && venue.hpp_marketing_amount !== null
+          ? Number(venue.hpp_marketing_amount)
+          : Math.round((hppVal * (venue.hpp_marketing_ratio || 50)) / 100);
+        const pAmount = Math.max(0, hppVal - mAmount);
+        const specObj = marketingSpecialists.find((m) => m.id === (venue.marketing_id || venue.sales_id));
+
+        initialBearers = [
+          {
+            id: 'bearer-1',
+            type: 'marketing',
+            specialist_id: venue.marketing_id || venue.sales_id || defaultMarketingId,
+            name: specObj?.name || 'Marketing Specialist',
+            amount: mAmount,
+            ratio: hppVal > 0 ? (mAmount / hppVal) * 100 : 50,
+            reimburse_status: 'unpaid',
+            profit_share_status: 'unpaid',
+          },
+          {
+            id: 'bearer-2',
+            type: 'platform',
+            specialist_id: null,
+            name: 'Platform / Agency (Kas Perusahaan)',
+            amount: pAmount,
+            ratio: hppVal > 0 ? (pAmount / hppVal) * 100 : 50,
+            reimburse_status: 'unpaid',
+            profit_share_status: 'unpaid',
+          },
+        ];
+      } else if (payer === 'platform') {
+        initialBearers = [
+          {
+            id: 'bearer-platform',
+            type: 'platform',
+            specialist_id: null,
+            name: 'Platform / Agency (Kas Perusahaan)',
+            amount: hppVal,
+            ratio: 100,
+            reimburse_status: 'unpaid',
+            profit_share_status: 'unpaid',
+          },
+        ];
+      } else {
+        const specObj = marketingSpecialists.find((m) => m.id === (venue.marketing_id || venue.sales_id));
+        initialBearers = [
+          {
+            id: 'bearer-marketing',
+            type: 'marketing',
+            specialist_id: venue.marketing_id || venue.sales_id || defaultMarketingId,
+            name: specObj?.name || 'Marketing Specialist',
+            amount: hppVal,
+            ratio: 100,
+            reimburse_status: 'unpaid',
+            profit_share_status: 'unpaid',
+          },
+        ];
+      }
+
       setFormData({
         name: venue.name,
         slug: venue.slug,
@@ -82,17 +177,20 @@ export function AdminVenueModal({
         is_active: venue.is_active,
         marketing_id: isMarketingSpecialistRole ? (currentSpecialistId || '') : (venue.marketing_id || venue.sales_id || ''),
         deal_amount: venue.deal_amount !== undefined ? Number(venue.deal_amount) : 599000,
-        hpp: venue.hpp !== undefined && venue.hpp !== null ? Number(venue.hpp) : 150000,
-        hpp_payer: venue.hpp_payer || 'marketing',
+        hpp: hppVal,
+        hpp_payer: payer,
         hpp_marketing_ratio: venue.hpp_marketing_ratio !== undefined ? Number(venue.hpp_marketing_ratio) : 100,
         hpp_marketing_amount: venue.hpp_marketing_amount !== undefined && venue.hpp_marketing_amount !== null
           ? Number(venue.hpp_marketing_amount)
-          : Math.round(((venue.hpp !== undefined ? Number(venue.hpp) : 150000) * (venue.hpp_marketing_ratio !== undefined ? Number(venue.hpp_marketing_ratio) : 100)) / 100),
+          : Math.round((hppVal * (venue.hpp_marketing_ratio !== undefined ? Number(venue.hpp_marketing_ratio) : 100)) / 100),
+        hpp_bearers: initialBearers,
         transport_fee: venue.transport_fee !== undefined ? Number(venue.transport_fee) : 20000,
         billing_type: isOneTime ? 'one_time' : 'subscription',
         monthly_retainer_fee: isOneTime ? 0 : (venue.monthly_retainer_fee || 149000),
       });
     } else {
+      const initialHpp = 150000;
+      const specObj = marketingSpecialists.find((m) => m.id === defaultMarketingId);
       setFormData({
         name: '',
         slug: '',
@@ -104,10 +202,22 @@ export function AdminVenueModal({
         is_active: true,
         marketing_id: defaultMarketingId,
         deal_amount: 599000,
-        hpp: 150000,
+        hpp: initialHpp,
         hpp_payer: 'marketing',
         hpp_marketing_ratio: 100,
-        hpp_marketing_amount: 150000,
+        hpp_marketing_amount: initialHpp,
+        hpp_bearers: [
+          {
+            id: 'bearer-marketing',
+            type: 'marketing',
+            specialist_id: defaultMarketingId,
+            name: specObj?.name || 'Marketing Specialist',
+            amount: initialHpp,
+            ratio: 100,
+            reimburse_status: 'unpaid',
+            profit_share_status: 'unpaid',
+          },
+        ],
         transport_fee: 20000,
         billing_type: 'subscription',
         monthly_retainer_fee: 149000,
@@ -127,12 +237,167 @@ export function AdminVenueModal({
 
   const currentSpecialistObj = marketingSpecialists.find((m) => m.id === (currentSpecialistId || formData.marketing_id));
 
+  const totalAllocated = (formData.hpp_bearers || []).reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+
+  const handleBearerSelectionChange = (index: number, selectedValue: string) => {
+    const updated = [...(formData.hpp_bearers || [])];
+    if (selectedValue === 'platform') {
+      updated[index] = {
+        ...updated[index],
+        type: 'platform',
+        specialist_id: null,
+        name: 'Platform / Agency (Kas Perusahaan)',
+      };
+    } else {
+      const spec = marketingSpecialists.find((m) => m.id === selectedValue);
+      updated[index] = {
+        ...updated[index],
+        type: 'marketing',
+        specialist_id: spec?.id || selectedValue,
+        name: spec?.name || 'Marketing Specialist',
+      };
+    }
+
+    const marketingSum = updated
+      .filter((b) => b.type === 'marketing')
+      .reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+    const mRatio = formData.hpp > 0 ? (marketingSum / formData.hpp) * 100 : 0;
+
+    setFormData({
+      ...formData,
+      hpp_bearers: updated,
+      hpp_marketing_amount: marketingSum,
+      hpp_marketing_ratio: mRatio,
+    });
+  };
+
+  const handleBearerAmountChange = (index: number, rawAmount: number) => {
+    const amt = Math.max(0, Number(rawAmount) || 0);
+    const updated = [...(formData.hpp_bearers || [])];
+    const ratio = formData.hpp > 0 ? (amt / formData.hpp) * 100 : 0;
+
+    updated[index] = {
+      ...updated[index],
+      amount: amt,
+      ratio,
+    };
+
+    const marketingSum = updated
+      .filter((b) => b.type === 'marketing')
+      .reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+    const mRatio = formData.hpp > 0 ? (marketingSum / formData.hpp) * 100 : 0;
+
+    setFormData({
+      ...formData,
+      hpp_bearers: updated,
+      hpp_marketing_amount: marketingSum,
+      hpp_marketing_ratio: mRatio,
+    });
+  };
+
+  const handleAddBearer = () => {
+    const current = formData.hpp_bearers || [];
+    const usedSpecIds = new Set(current.filter((b) => b.type === 'marketing').map((b) => b.specialist_id));
+    const nextSpec = marketingSpecialists.find((m) => !usedSpecIds.has(m.id));
+
+    const newBearer: HppBearer = {
+      id: `bearer-${Date.now()}`,
+      type: nextSpec ? 'marketing' : 'platform',
+      specialist_id: nextSpec ? nextSpec.id : null,
+      name: nextSpec ? nextSpec.name : 'Platform / Agency (Kas Perusahaan)',
+      amount: 0,
+      ratio: 0,
+      reimburse_status: 'unpaid',
+      profit_share_status: 'unpaid',
+    };
+
+    setFormData({
+      ...formData,
+      hpp_bearers: [...current, newBearer],
+    });
+  };
+
+  const handleRemoveBearer = (index: number) => {
+    const current = formData.hpp_bearers || [];
+    if (current.length <= 2) return;
+
+    const updated = current.filter((_, i) => i !== index);
+    const marketingSum = updated
+      .filter((b) => b.type === 'marketing')
+      .reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+    const mRatio = formData.hpp > 0 ? (marketingSum / formData.hpp) * 100 : 0;
+
+    setFormData({
+      ...formData,
+      hpp_bearers: updated,
+      hpp_marketing_amount: marketingSum,
+      hpp_marketing_ratio: mRatio,
+    });
+  };
+
+  const handleEvenSplit = () => {
+    const current = formData.hpp_bearers || [];
+    if (current.length === 0) return;
+
+    const count = current.length;
+    const base = Math.floor(formData.hpp / count);
+    const remainder = formData.hpp % count;
+
+    const updated = current.map((b, i) => {
+      const amt = base + (i < remainder ? 1 : 0);
+      const ratio = formData.hpp > 0 ? (amt / formData.hpp) * 100 : 0;
+      return { ...b, amount: amt, ratio };
+    });
+
+    const marketingSum = updated
+      .filter((b) => b.type === 'marketing')
+      .reduce((sum, b) => sum + b.amount, 0);
+    const mRatio = formData.hpp > 0 ? (marketingSum / formData.hpp) * 100 : 0;
+
+    setFormData({
+      ...formData,
+      hpp_bearers: updated,
+      hpp_marketing_amount: marketingSum,
+      hpp_marketing_ratio: mRatio,
+    });
+  };
+
+  const handleAdjustLastBearer = () => {
+    const current = formData.hpp_bearers || [];
+    if (current.length === 0) return;
+
+    const sumExceptLast = current.slice(0, -1).reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+    const lastAmt = Math.max(0, formData.hpp - sumExceptLast);
+    const lastRatio = formData.hpp > 0 ? (lastAmt / formData.hpp) * 100 : 0;
+
+    const updated = current.map((b, i) => {
+      if (i === current.length - 1) {
+        return { ...b, amount: lastAmt, ratio: lastRatio };
+      }
+      return b;
+    });
+
+    const marketingSum = updated
+      .filter((b) => b.type === 'marketing')
+      .reduce((sum, b) => sum + b.amount, 0);
+    const mRatio = formData.hpp > 0 ? (marketingSum / formData.hpp) * 100 : 0;
+
+    setFormData({
+      ...formData,
+      hpp_bearers: updated,
+      hpp_marketing_amount: marketingSum,
+      hpp_marketing_ratio: mRatio,
+    });
+  };
+
   const profitDist = calculateProfitDistribution({
     deal_amount: formData.deal_amount,
     hpp: formData.hpp,
     hpp_payer: formData.hpp_payer,
     hpp_marketing_ratio: formData.hpp_marketing_ratio,
     hpp_marketing_amount: formData.hpp_marketing_amount,
+    hpp_bearers: formData.hpp_bearers,
+    closing_specialist_id: formData.marketing_id,
     transport_fee: formData.transport_fee,
   });
 
@@ -302,13 +567,63 @@ export function AdminVenueModal({
                   value={formData.hpp}
                   onChange={(e) => {
                     const newHpp = Math.max(0, Number(e.target.value) || 0);
-                    const ratio = formData.hpp_marketing_ratio !== undefined ? formData.hpp_marketing_ratio : 50;
-                    const newMarketingAmount = Math.round((newHpp * ratio) / 100);
-                    setFormData({
-                      ...formData,
-                      hpp: newHpp,
-                      hpp_marketing_amount: formData.hpp_payer === 'platform' ? 0 : (formData.hpp_payer === 'marketing' ? newHpp : newMarketingAmount),
-                    });
+                    if (formData.hpp_payer === 'marketing') {
+                      const specObj = marketingSpecialists.find((m) => m.id === formData.marketing_id);
+                      setFormData({
+                        ...formData,
+                        hpp: newHpp,
+                        hpp_marketing_amount: newHpp,
+                        hpp_marketing_ratio: 100,
+                        hpp_bearers: [
+                          {
+                            id: 'bearer-marketing',
+                            type: 'marketing',
+                            specialist_id: formData.marketing_id,
+                            name: specObj?.name || 'Marketing Specialist',
+                            amount: newHpp,
+                            ratio: 100,
+                            reimburse_status: 'unpaid',
+                            profit_share_status: 'unpaid',
+                          },
+                        ],
+                      });
+                    } else if (formData.hpp_payer === 'platform') {
+                      setFormData({
+                        ...formData,
+                        hpp: newHpp,
+                        hpp_marketing_amount: 0,
+                        hpp_marketing_ratio: 0,
+                        hpp_bearers: [
+                          {
+                            id: 'bearer-platform',
+                            type: 'platform',
+                            specialist_id: null,
+                            name: 'Platform / Agency (Kas Perusahaan)',
+                            amount: newHpp,
+                            ratio: 100,
+                            reimburse_status: 'unpaid',
+                            profit_share_status: 'unpaid',
+                          },
+                        ],
+                      });
+                    } else {
+                      const current = formData.hpp_bearers || [];
+                      const count = Math.max(2, current.length);
+                      const base = Math.floor(newHpp / count);
+                      const rem = newHpp % count;
+                      const updated = (current.length >= 2 ? current : createDefaultSplitBearers(newHpp, formData.marketing_id)).map((b, i) => {
+                        const amt = base + (i < rem ? 1 : 0);
+                        return { ...b, amount: amt, ratio: newHpp > 0 ? (amt / newHpp) * 100 : 0 };
+                      });
+                      const mSum = updated.filter((b) => b.type === 'marketing').reduce((s, b) => s + b.amount, 0);
+                      setFormData({
+                        ...formData,
+                        hpp: newHpp,
+                        hpp_bearers: updated,
+                        hpp_marketing_amount: mSum,
+                        hpp_marketing_ratio: newHpp > 0 ? (mSum / newHpp) * 100 : 0,
+                      });
+                    }
                   }}
                   className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 focus:outline-none text-xs"
                   placeholder="150000"
@@ -325,7 +640,27 @@ export function AdminVenueModal({
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, hpp_payer: 'marketing', hpp_marketing_ratio: 100, hpp_marketing_amount: formData.hpp })}
+                  onClick={() => {
+                    const specObj = marketingSpecialists.find((m) => m.id === formData.marketing_id);
+                    setFormData({
+                      ...formData,
+                      hpp_payer: 'marketing',
+                      hpp_marketing_ratio: 100,
+                      hpp_marketing_amount: formData.hpp,
+                      hpp_bearers: [
+                        {
+                          id: 'bearer-marketing',
+                          type: 'marketing',
+                          specialist_id: formData.marketing_id,
+                          name: specObj?.name || 'Marketing Specialist',
+                          amount: formData.hpp,
+                          ratio: 100,
+                          reimburse_status: 'unpaid',
+                          profit_share_status: 'unpaid',
+                        },
+                      ],
+                    });
+                  }}
                   className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
                     formData.hpp_payer === 'marketing'
                       ? 'border-[#84cc16] bg-lime-50 text-slate-900 ring-1 ring-[#84cc16]'
@@ -334,12 +669,31 @@ export function AdminVenueModal({
                 >
                   <Briefcase className="w-3.5 h-3.5 mb-1 text-[#84cc16]" />
                   <span className="text-[11px] font-bold">Marketing (100%)</span>
-                  <span className="text-[9px] text-slate-400">Modal dari Specialist</span>
+                  <span className="text-[9px] text-slate-400">Modal 1 Specialist</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, hpp_payer: 'platform', hpp_marketing_ratio: 0, hpp_marketing_amount: 0 })}
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      hpp_payer: 'platform',
+                      hpp_marketing_ratio: 0,
+                      hpp_marketing_amount: 0,
+                      hpp_bearers: [
+                        {
+                          id: 'bearer-platform',
+                          type: 'platform',
+                          specialist_id: null,
+                          name: 'Platform / Agency (Kas Perusahaan)',
+                          amount: formData.hpp,
+                          ratio: 100,
+                          reimburse_status: 'unpaid',
+                          profit_share_status: 'unpaid',
+                        },
+                      ],
+                    })
+                  }
                   className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
                     formData.hpp_payer === 'platform'
                       ? 'border-cyan-500 bg-cyan-50 text-slate-900 ring-1 ring-cyan-500'
@@ -354,8 +708,17 @@ export function AdminVenueModal({
                 <button
                   type="button"
                   onClick={() => {
-                    const half = Math.round(formData.hpp * 0.5);
-                    setFormData({ ...formData, hpp_payer: 'split', hpp_marketing_ratio: 50, hpp_marketing_amount: half });
+                    const current = formData.hpp_bearers && formData.hpp_bearers.length >= 2
+                      ? formData.hpp_bearers
+                      : createDefaultSplitBearers(formData.hpp, formData.marketing_id);
+                    const mSum = current.filter((b) => b.type === 'marketing').reduce((s, b) => s + b.amount, 0);
+                    setFormData({
+                      ...formData,
+                      hpp_payer: 'split',
+                      hpp_bearers: current,
+                      hpp_marketing_amount: mSum,
+                      hpp_marketing_ratio: formData.hpp > 0 ? (mSum / formData.hpp) * 100 : 50,
+                    });
                   }}
                   className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
                     formData.hpp_payer === 'split'
@@ -365,217 +728,151 @@ export function AdminVenueModal({
                 >
                   <Percent className="w-3.5 h-3.5 mb-1 text-indigo-600" />
                   <span className="text-[11px] font-bold">Split Bersama</span>
-                  <span className="text-[9px] text-slate-400">Atur Nominal Rupiah</span>
+                  <span className="text-[9px] text-slate-400">Multi Marketing & Kas</span>
                 </button>
               </div>
 
               {formData.hpp_payer === 'split' && (
-                <div className="mt-2.5 p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl space-y-3 text-xs">
+                <div className="mt-2.5 p-3.5 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl space-y-3 text-xs">
                   <div className="flex items-center justify-between border-b border-indigo-100 pb-2">
-                    <span className="font-bold text-indigo-900 flex items-center gap-1.5">
-                      <Percent className="w-3.5 h-3.5 text-indigo-600" />
-                      Atur Porsi Modal HPP (Angka Rupiah)
+                    <span className="font-bold text-indigo-950 flex items-center gap-1.5 text-xs">
+                      <Users className="w-4 h-4 text-indigo-600" />
+                      Penanggung Modal HPP (Multi-Bearer)
                     </span>
-                    <span className="text-[11px] text-indigo-700 font-bold">
+                    <span className="text-[11px] text-indigo-700 font-bold bg-indigo-100/70 px-2 py-0.5 rounded-lg">
                       Total HPP: Rp {formData.hpp.toLocaleString('id-ID')}
                     </span>
                   </div>
 
-                  {/* Dual Rupiah Inputs with bi-directional auto sync */}
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        Porsi Marketing (Rp)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={formData.hpp}
-                        value={formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100)}
-                        onChange={(e) => {
-                          const raw = Number(e.target.value) || 0;
-                          const clamped = Math.min(formData.hpp, Math.max(0, raw));
-                          const ratio = formData.hpp > 0 ? (clamped / formData.hpp) * 100 : 50;
-                          setFormData({
-                            ...formData,
-                            hpp_marketing_amount: clamped,
-                            hpp_marketing_ratio: ratio,
-                          });
-                        }}
-                        className="w-full px-2.5 py-1.5 border border-indigo-200 rounded-xl font-bold text-indigo-900 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none text-xs"
-                        placeholder="50000"
-                      />
-                      <span className="text-[10px] text-indigo-600 font-semibold mt-0.5 block">
-                        {(formData.hpp > 0 ? ((formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100)) / formData.hpp) * 100 : 50).toFixed(1)}% porsi modal
-                      </span>
-                    </div>
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    Pilih penanggung modal (beberapa marketing specialist atau kas platform) melalui dropdown, lalu tentukan nominal Rupiah masing-masing.
+                  </p>
 
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        Porsi Platform (Rp)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={formData.hpp}
-                        value={Math.max(0, formData.hpp - (formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100)))}
-                        onChange={(e) => {
-                          const pRaw = Number(e.target.value) || 0;
-                          const pClamped = Math.min(formData.hpp, Math.max(0, pRaw));
-                          const mVal = Math.max(0, formData.hpp - pClamped);
-                          const ratio = formData.hpp > 0 ? (mVal / formData.hpp) * 100 : 50;
-                          setFormData({
-                            ...formData,
-                            hpp_marketing_amount: mVal,
-                            hpp_marketing_ratio: ratio,
-                          });
-                        }}
-                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl font-bold text-slate-700 bg-white focus:ring-2 focus:ring-slate-500/20 focus:outline-none text-xs"
-                        placeholder="100000"
-                      />
-                      <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
-                        {(formData.hpp > 0 ? (Math.max(0, formData.hpp - (formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100))) / formData.hpp) * 100 : 50).toFixed(1)}% porsi modal
-                      </span>
-                    </div>
+                  {/* List of Bearer Rows */}
+                  <div className="space-y-2.5">
+                    {formData.hpp_bearers.map((bearer, index) => {
+                      const percentage = formData.hpp > 0 ? ((bearer.amount / formData.hpp) * 100).toFixed(1) : '0.0';
+                      return (
+                        <div
+                          key={bearer.id || index}
+                          className="p-2.5 bg-white border border-indigo-100 rounded-xl shadow-sm space-y-2 hover:border-indigo-200 transition"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 flex items-center gap-1">
+                              Penanggung #{index + 1}
+                              <span className={`ml-1 text-[9px] font-normal px-1.5 py-0.2 rounded-full ${bearer.type === 'marketing' ? 'bg-lime-50 text-lime-700 border border-lime-200' : 'bg-cyan-50 text-cyan-700 border border-cyan-200'}`}>
+                                {bearer.type === 'marketing' ? 'Marketing Specialist' : 'Kas Platform'}
+                              </span>
+                            </span>
+                            {formData.hpp_bearers.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveBearer(index)}
+                                className="text-slate-400 hover:text-rose-500 p-0.5 transition"
+                                title="Hapus penanggung modal ini"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-12 gap-2 items-center">
+                            {/* Dropdown Pemilih Penanggung */}
+                            <div className="col-span-7">
+                              <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
+                                Siapa yang menanggung?
+                              </label>
+                              <select
+                                value={bearer.type === 'platform' ? 'platform' : (bearer.specialist_id || '')}
+                                onChange={(e) => handleBearerSelectionChange(index, e.target.value)}
+                                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-800 focus:bg-white focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 focus:outline-none"
+                              >
+                                <option value="platform">🏢 Kas Platform / Agency</option>
+                                <optgroup label="Marketing Specialist">
+                                  {marketingSpecialists.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      👤 {m.name}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              </select>
+                            </div>
+
+                            {/* Input Nominal Rupiah */}
+                            <div className="col-span-5">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <label className="block text-[10px] font-semibold text-slate-500">
+                                  Nominal (Rp)
+                                </label>
+                                <span className="text-[10px] font-bold text-indigo-600">
+                                  {percentage}%
+                                </span>
+                              </div>
+                              <input
+                                type="number"
+                                min="0"
+                                max={formData.hpp}
+                                step="1000"
+                                value={bearer.amount}
+                                onChange={(e) => handleBearerAmountChange(index, Number(e.target.value))}
+                                className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg font-bold text-slate-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                placeholder="50000"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {/* Preset Buttons & Fine-tuning Slider */}
+                  {/* Actions: Tambah Penanggung, Bagi Rata, Presets */}
                   <div className="pt-2 border-t border-indigo-100 flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-slate-500 font-medium">Preset:</span>
                       <button
                         type="button"
-                        onClick={() => {
-                          const half = Math.round(formData.hpp * 0.5);
-                          setFormData({ ...formData, hpp_marketing_amount: half, hpp_marketing_ratio: 50 });
-                        }}
-                        className="px-2 py-0.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-[10px] font-bold rounded-lg text-indigo-700 transition"
+                        onClick={handleAddBearer}
+                        className="px-2.5 py-1 bg-white border border-indigo-200 hover:bg-indigo-50 text-[11px] font-bold rounded-lg text-indigo-700 flex items-center gap-1 transition shadow-sm"
                       >
-                        50 : 50
+                        <PlusCircle className="w-3.5 h-3.5 text-indigo-600" />
+                        Tambah Penanggung
                       </button>
+
                       <button
                         type="button"
-                        onClick={() => {
-                          const m = Math.round(formData.hpp * 0.3);
-                          setFormData({ ...formData, hpp_marketing_amount: m, hpp_marketing_ratio: 30 });
-                        }}
-                        className="px-2 py-0.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-[10px] font-bold rounded-lg text-indigo-700 transition"
+                        onClick={handleEvenSplit}
+                        className="px-2.5 py-1 bg-indigo-100/70 hover:bg-indigo-200/70 text-[11px] font-bold rounded-lg text-indigo-800 transition shadow-sm"
+                        title="Bagi rata nominal HPP ke seluruh penanggung modal"
                       >
-                        30 : 70
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const m = Math.round(formData.hpp * 0.7);
-                          setFormData({ ...formData, hpp_marketing_amount: m, hpp_marketing_ratio: 70 });
-                        }}
-                        className="px-2 py-0.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-[10px] font-bold rounded-lg text-indigo-700 transition"
-                      >
-                        70 : 30
+                        ⚖️ Bagi Rata
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={Math.round(formData.hpp > 0 ? ((formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100)) / formData.hpp) * 100 : 50)}
-                        onChange={(e) => {
-                          const r = Number(e.target.value);
-                          const amt = Math.round((formData.hpp * r) / 100);
-                          setFormData({ ...formData, hpp_marketing_ratio: r, hpp_marketing_amount: amt });
-                        }}
-                        className="w-20 accent-indigo-600 cursor-pointer"
-                      />
-                      <span className="text-[10px] font-mono font-bold text-indigo-700">
-                        {Math.round(formData.hpp > 0 ? ((formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100)) / formData.hpp) * 100 : 50)}%
-                      </span>
+                    {/* Status Alokasi HPP */}
+                    <div className="text-[11px]">
+                      {totalAllocated === formData.hpp ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-700 font-bold bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-lg">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Pas Rp {formData.hpp.toLocaleString('id-ID')} (100%)
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 text-amber-700 font-bold bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-lg">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                            Selisih: Rp {Math.abs(formData.hpp - totalAllocated).toLocaleString('id-ID')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleAdjustLastBearer}
+                            className="text-[10px] text-indigo-700 hover:underline font-bold"
+                          >
+                            Auto Pas
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Flat Transport Fee Marketing */}
-            <div>
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Uang Transportasi Flat Marketing (Rp)
-                </label>
-                <span className="text-[10px] text-slate-400">Default Rp 20.000</span>
-              </div>
-              <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Car className="w-4 h-4" />
-                </div>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.transport_fee}
-                  onChange={(e) => setFormData({ ...formData, transport_fee: Number(e.target.value) })}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
-                  placeholder="20000"
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1">
-                Diberikan langsung ke marketing specialist yang berhasil mencapai deal.
-              </p>
-            </div>
-
-            {/* Live Profit & Payout Breakdown Simulator */}
-            <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50/90 space-y-2.5 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-                <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  Simulasi Bagi Hasil & Payout
-                </span>
-                <span className="text-[11px] font-semibold text-slate-500">
-                  Gross Profit: <strong className="text-emerald-700">Rp {profitDist.gross_profit.toLocaleString('id-ID')}</strong>
-                </span>
-              </div>
-
-              {/* Rincian Transaksi */}
-              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600">
-                <div className="p-2 bg-white rounded-xl border border-slate-100">
-                  <p className="text-[10px] text-slate-400 uppercase font-semibold">1. Reimburse Modal HPP</p>
-                  <p className="mt-0.5 font-medium">Marketing: <strong className="text-slate-800">Rp {profitDist.reimburse_marketing.toLocaleString('id-ID')}</strong></p>
-                  <p className="font-medium">Platform: <strong className="text-slate-800">Rp {profitDist.reimburse_platform.toLocaleString('id-ID')}</strong></p>
-                </div>
-                <div className="p-2 bg-white rounded-xl border border-slate-100">
-                  <p className="text-[10px] text-slate-400 uppercase font-semibold">2. Potongan Profit</p>
-                  <p className="mt-0.5 font-medium">Fee Platform (10%): <strong className="text-slate-800">Rp {profitDist.platform_fee_10.toLocaleString('id-ID')}</strong></p>
-                  <p className="font-medium">Transport Mktg: <strong className="text-slate-800">Rp {profitDist.marketing_transport.toLocaleString('id-ID')}</strong></p>
-                </div>
-              </div>
-
-              {/* Payout Banner */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <div className="p-2.5 rounded-xl bg-lime-50/80 border border-lime-200 text-lime-900">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-lime-800 flex items-center gap-1">
-                    <Briefcase className="w-3 h-3 text-[#84cc16]" /> Payout Marketing
-                  </p>
-                  <p className="text-base font-black text-slate-900 mt-0.5">
-                    Rp {profitDist.marketing_total_payout.toLocaleString('id-ID')}
-                  </p>
-                  <p className="text-[9px] text-slate-500 mt-0.5">
-                    Reimb {profitDist.reimburse_marketing > 0 ? `${(profitDist.reimburse_marketing / 1000)}k + ` : ''}Trans {(profitDist.marketing_transport / 1000)}k + Bagi {(profitDist.marketing_final_share / 1000)}k
-                  </p>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-cyan-50/80 border border-cyan-200 text-cyan-900">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-800 flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-cyan-600" /> Payout Platform
-                  </p>
-                  <p className="text-base font-black text-slate-900 mt-0.5">
-                    Rp {profitDist.platform_total_payout.toLocaleString('id-ID')}
-                  </p>
-                  <p className="text-[9px] text-slate-500 mt-0.5">
-                    Reimb {profitDist.reimburse_platform > 0 ? `${(profitDist.reimburse_platform / 1000)}k + ` : ''}Fee {(profitDist.platform_fee_10 / 1000)}k + Bagi {(profitDist.platform_final_share / 1000)}k
-                  </p>
-                </div>
-              </div>
             </div>
 
             {formData.billing_type === 'subscription' ? (
@@ -621,6 +918,125 @@ export function AdminVenueModal({
                   ))}
                 </select>
               )}
+            </div>
+
+            {/* Flat Transport Fee Marketing */}
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Uang Transportasi Flat Marketing (Rp)
+                </label>
+                <span className="text-[10px] text-slate-400">Default Rp 20.000</span>
+              </div>
+              <div className="relative mt-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Car className="w-4 h-4" />
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.transport_fee}
+                  onChange={(e) => setFormData({ ...formData, transport_fee: Number(e.target.value) })}
+                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
+                  placeholder="20000"
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Diberikan langsung ke marketing specialist yang berhasil mencapai deal.
+              </p>
+            </div>
+
+            {/* Live Profit & Payout Breakdown Simulator */}
+            <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50/90 space-y-2.5 text-xs">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  Simulasi Bagi Hasil & Payout
+                </span>
+                <span className="text-[11px] font-semibold text-slate-500">
+                  Gross Profit: <strong className="text-emerald-700">Rp {profitDist.gross_profit.toLocaleString('id-ID')}</strong>
+                </span>
+              </div>
+
+              {/* Rincian Transaksi */}
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                <div className="p-2 bg-white rounded-xl border border-slate-100">
+                  <p className="text-[10px] text-slate-400 uppercase font-semibold">1. Reimburse Modal HPP</p>
+                  <p className="mt-0.5 font-medium">Marketing Total: <strong className="text-slate-800">Rp {profitDist.reimburse_marketing.toLocaleString('id-ID')}</strong></p>
+                  <p className="font-medium">Platform Total: <strong className="text-slate-800">Rp {profitDist.reimburse_platform.toLocaleString('id-ID')}</strong></p>
+                </div>
+                <div className="p-2 bg-white rounded-xl border border-slate-100">
+                  <p className="text-[10px] text-slate-400 uppercase font-semibold">2. Potongan Profit</p>
+                  <p className="mt-0.5 font-medium">Fee Platform (10%): <strong className="text-slate-800">Rp {profitDist.platform_fee_10.toLocaleString('id-ID')}</strong></p>
+                  <p className="font-medium">Transport Closing: <strong className="text-slate-800">Rp {profitDist.marketing_transport.toLocaleString('id-ID')}</strong></p>
+                </div>
+              </div>
+
+              {/* Multi-bearer breakdown table if split */}
+              {formData.hpp_payer === 'split' && profitDist.bearers_summary && profitDist.bearers_summary.length > 0 && (
+                <div className="pt-2 border-t border-slate-200/80 space-y-1.5">
+                  <p className="text-[10px] uppercase font-bold text-indigo-900 tracking-wider">
+                    3. Rincian Payout per Penanggung Modal ({profitDist.bearers_summary.length} Pihak):
+                  </p>
+                  <div className="space-y-1.5">
+                    {profitDist.bearers_summary.map((item, idx) => (
+                      <div
+                        key={item.bearer.id || idx}
+                        className="p-2 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-[11px]"
+                      >
+                        <div>
+                          <p className="font-bold text-slate-800 flex items-center gap-1">
+                            {item.bearer.name}
+                            <span className="text-[9px] font-normal text-slate-400">
+                              (Modal {item.ratio.toFixed(1)}%)
+                            </span>
+                          </p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">
+                            Reimb: Rp {item.reimburse.toLocaleString('id-ID')}
+                            {item.transport > 0 ? ` + Trans: Rp ${item.transport.toLocaleString('id-ID')}` : ''}
+                            {item.final_share > 0 ? ` + Share: Rp ${item.final_share.toLocaleString('id-ID')}` : ''}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-slate-900 text-xs">
+                            Rp {item.total_payout.toLocaleString('id-ID')}
+                          </p>
+                          <p className="text-[10px] font-semibold text-emerald-600">
+                            Laba: +Rp {item.net_income.toLocaleString('id-ID')}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Payout Summary Cards */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="p-2.5 rounded-xl bg-lime-50/80 border border-lime-200 text-lime-900">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-lime-800 flex items-center gap-1">
+                    <Briefcase className="w-3 h-3 text-[#84cc16]" /> Payout Marketing Total
+                  </p>
+                  <p className="text-base font-black text-slate-900 mt-0.5">
+                    Rp {profitDist.marketing_total_payout.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-[9px] text-slate-500 mt-0.5">
+                    Reimb {profitDist.reimburse_marketing > 0 ? `${(profitDist.reimburse_marketing / 1000)}k + ` : ''}Trans {(profitDist.marketing_transport / 1000)}k + Bagi {(profitDist.marketing_final_share / 1000)}k
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-cyan-50/80 border border-cyan-200 text-cyan-900">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-800 flex items-center gap-1">
+                    <Building2 className="w-3 h-3 text-cyan-600" /> Payout Platform Total
+                  </p>
+                  <p className="text-base font-black text-slate-900 mt-0.5">
+                    Rp {profitDist.platform_total_payout.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-[9px] text-slate-500 mt-0.5">
+                    Reimb {profitDist.reimburse_platform > 0 ? `${(profitDist.reimburse_platform / 1000)}k + ` : ''}Fee {(profitDist.platform_fee_10 / 1000)}k + Bagi {(profitDist.platform_final_share / 1000)}k
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       hpp_payer,
       hpp_marketing_ratio,
       hpp_marketing_amount,
+      hpp_bearers,
       transport_fee,
       billing_type,
       monthly_retainer_fee,
@@ -76,12 +77,44 @@ export async function POST(request: Request) {
     const cleanRetainer = cleanBillingType === 'one_time' ? 0 : Number(monthly_retainer_fee || 0);
     const cleanDealAmount = Number(selling_price !== undefined ? selling_price : deal_amount) || 0;
     const cleanHpp = hpp !== undefined ? Number(hpp) : 150000;
-    const cleanHppPayer = ['marketing', 'platform', 'split'].includes(hpp_payer) ? hpp_payer : 'marketing';
+    let cleanHppPayer = ['marketing', 'platform', 'split'].includes(hpp_payer) ? hpp_payer : 'marketing';
 
+    let cleanHppBearers: any[] = [];
     let cleanHppMarketingAmount: number | undefined = undefined;
     let cleanHppMarketingRatio: number = 100;
 
-    if (hpp_marketing_amount !== undefined && hpp_marketing_amount !== null && !isNaN(Number(hpp_marketing_amount))) {
+    if (hpp_bearers && Array.isArray(hpp_bearers) && hpp_bearers.length > 0) {
+      cleanHppBearers = hpp_bearers.map((b: any, idx: number) => {
+        const amt = Math.max(0, Number(b.amount) || 0);
+        const r = cleanHpp > 0 ? (amt / cleanHpp) * 100 : 0;
+        const bType = b.type === 'platform' ? 'platform' : 'marketing';
+        return {
+          id: b.id || `bearer-${idx}-${Date.now()}`,
+          type: bType,
+          specialist_id: bType === 'marketing' ? (b.specialist_id || null) : null,
+          name: b.name || (bType === 'platform' ? 'Platform / Agency (Kas Perusahaan)' : 'Marketing Specialist'),
+          amount: amt,
+          ratio: r,
+          reimburse_status: b.reimburse_status || 'unpaid',
+          reimburse_paid_at: b.reimburse_paid_at || null,
+          reimburse_notes: b.reimburse_notes || null,
+          profit_share_status: b.profit_share_status || 'unpaid',
+          profit_share_paid_at: b.profit_share_paid_at || null,
+          profit_share_notes: b.profit_share_notes || null,
+        };
+      });
+
+      const marketingSum = cleanHppBearers
+        .filter((b) => b.type === 'marketing')
+        .reduce((sum, b) => sum + b.amount, 0);
+
+      cleanHppMarketingAmount = marketingSum;
+      cleanHppMarketingRatio = cleanHpp > 0 ? (marketingSum / cleanHpp) * 100 : 100;
+
+      if (marketingSum === cleanHpp) cleanHppPayer = 'marketing';
+      else if (marketingSum === 0) cleanHppPayer = 'platform';
+      else cleanHppPayer = 'split';
+    } else if (hpp_marketing_amount !== undefined && hpp_marketing_amount !== null && !isNaN(Number(hpp_marketing_amount))) {
       cleanHppMarketingAmount = Math.min(cleanHpp, Math.max(0, Number(hpp_marketing_amount)));
       cleanHppMarketingRatio = cleanHpp > 0 ? (cleanHppMarketingAmount / cleanHpp) * 100 : 100;
     } else if (hpp_marketing_ratio !== undefined) {
@@ -110,6 +143,7 @@ export async function POST(request: Request) {
       hpp_payer: cleanHppPayer,
       hpp_marketing_ratio: cleanHppMarketingRatio,
       hpp_marketing_amount: cleanHppMarketingAmount,
+      hpp_bearers: cleanHppBearers,
       transport_fee: cleanTransportFee,
       billing_type: cleanBillingType,
       monthly_retainer_fee: cleanRetainer,

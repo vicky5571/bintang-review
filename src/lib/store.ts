@@ -13,7 +13,7 @@ import { supabase, supabaseAdmin, isSupabaseConfigured } from './supabase/client
 import { calculateProfitDistribution } from './profitSharing';
 
 // In-Memory Data Store fallback
-class InMemoryStore {
+export class InMemoryStore {
   private marketingSpecialists: MarketingSpecialist[] = [
     {
       id: '00000000-0000-0000-0000-000000000001',
@@ -82,7 +82,13 @@ class InMemoryStore {
 
   async listVenues(marketingId?: string): Promise<Venue[]> {
     if (marketingId) {
-      return this.venues.filter((v) => v.marketing_id === marketingId || v.sales_id === marketingId);
+      return this.venues.filter(
+        (v) =>
+          v.marketing_id === marketingId ||
+          v.sales_id === marketingId ||
+          (Array.isArray(v.hpp_bearers) &&
+            v.hpp_bearers.some((b) => b.type === 'marketing' && b.specialist_id === marketingId))
+      );
     }
     return [...this.venues];
   }
@@ -100,6 +106,7 @@ class InMemoryStore {
       hpp_payer: data.hpp_payer || 'marketing',
       hpp_marketing_ratio: data.hpp_marketing_ratio !== undefined ? Number(data.hpp_marketing_ratio) : (data.hpp_payer === 'platform' ? 0 : (data.hpp_payer === 'split' ? 50 : 100)),
       hpp_marketing_amount: data.hpp_marketing_amount !== undefined ? Number(data.hpp_marketing_amount) : undefined,
+      hpp_bearers: Array.isArray(data.hpp_bearers) ? data.hpp_bearers : [],
       transport_fee: data.transport_fee !== undefined ? Number(data.transport_fee) : 20000,
       hpp_reimburse_status: data.hpp_reimburse_status || ((data.hpp_payer === 'platform' || data.hpp_marketing_ratio === 0) ? 'not_applicable' : 'unpaid'),
       hpp_reimburse_paid_at: data.hpp_reimburse_paid_at,
@@ -114,7 +121,7 @@ class InMemoryStore {
         (billing_type === 'subscription'
           ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
           : undefined),
-      id: `venue-${Date.now()}`,
+      id: `venue-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -132,6 +139,7 @@ class InMemoryStore {
       ...updates,
       billing_type,
       monthly_retainer_fee: billing_type === 'one_time' ? 0 : (updates.monthly_retainer_fee !== undefined ? updates.monthly_retainer_fee : current.monthly_retainer_fee),
+      hpp_bearers: updates.hpp_bearers !== undefined ? updates.hpp_bearers : current.hpp_bearers,
       updated_at: new Date().toISOString(),
     };
     return { ...this.venues[index] };
@@ -189,7 +197,11 @@ class InMemoryStore {
   async listMarketingSpecialists(): Promise<MarketingSpecialistSummary[]> {
     return this.marketingSpecialists.map((specialist) => {
       const specialistVenues = this.venues.filter(
-        (v) => v.marketing_id === specialist.id || v.sales_id === specialist.id
+        (v) =>
+          v.marketing_id === specialist.id ||
+          v.sales_id === specialist.id ||
+          (Array.isArray(v.hpp_bearers) &&
+            v.hpp_bearers.some((b) => b.type === 'marketing' && b.specialist_id === specialist.id))
       );
       const total_venues = specialistVenues.length;
       const total_revenue = specialistVenues.reduce((sum, v) => sum + (Number(v.deal_amount) || 0), 0);
@@ -199,8 +211,22 @@ class InMemoryStore {
           hpp: v.hpp,
           hpp_payer: v.hpp_payer,
           hpp_marketing_ratio: v.hpp_marketing_ratio,
+          hpp_marketing_amount: v.hpp_marketing_amount,
+          hpp_bearers: v.hpp_bearers,
+          closing_specialist_id: v.sales_id || v.marketing_id,
           transport_fee: v.transport_fee,
         });
+
+        if (v.hpp_bearers && v.hpp_bearers.length > 0) {
+          const myBearers = dist.bearers_summary.filter(
+            (b) => b.bearer.type === 'marketing' && b.bearer.specialist_id === specialist.id
+          );
+          const bearerEarnings = myBearers.reduce((bSum, b) => bSum + b.total_payout, 0);
+          const isCloser = (v.sales_id === specialist.id || v.marketing_id === specialist.id);
+          const closerBonus = (isCloser && myBearers.length === 0) ? dist.marketing_transport : 0;
+          return sum + bearerEarnings + closerBonus;
+        }
+
         return sum + dist.marketing_total_payout;
       }, 0);
 
@@ -223,7 +249,7 @@ class InMemoryStore {
     const newSpecialist: MarketingSpecialist = {
       ...data,
       access_pin: data.access_pin || '1234',
-      id: `specialist-${Date.now()}`,
+      id: `specialist-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       is_active: data.is_active !== undefined ? data.is_active : true,
       created_at: new Date().toISOString(),
     };
@@ -358,6 +384,32 @@ class StoreRepository {
           .order('created_at', { ascending: false });
 
         if (marketingId) {
+          try {
+            const { data: orData, error: orError } = await client
+              .from('venues')
+              .select('*')
+              .or(`sales_id.eq.${marketingId},hpp_bearers.cs.[{"specialist_id":"${marketingId}"}]`)
+              .order('created_at', { ascending: false });
+            if (!orError && orData) {
+              return orData.map((v: any) => ({
+                ...v,
+                hpp: v.hpp !== undefined && v.hpp !== null ? Number(v.hpp) : 150000,
+                hpp_payer: v.hpp_payer || 'marketing',
+                hpp_marketing_ratio: v.hpp_marketing_ratio !== undefined && v.hpp_marketing_ratio !== null ? Number(v.hpp_marketing_ratio) : 100,
+                hpp_marketing_amount: v.hpp_marketing_amount !== undefined && v.hpp_marketing_amount !== null ? Number(v.hpp_marketing_amount) : undefined,
+                hpp_bearers: Array.isArray(v.hpp_bearers) ? v.hpp_bearers : [],
+                transport_fee: v.transport_fee !== undefined && v.transport_fee !== null ? Number(v.transport_fee) : 20000,
+                hpp_reimburse_status: v.hpp_reimburse_status || ((v.hpp_payer === 'platform' || v.hpp_marketing_ratio === 0) ? 'not_applicable' : 'unpaid'),
+                hpp_reimburse_paid_at: v.hpp_reimburse_paid_at,
+                hpp_reimburse_notes: v.hpp_reimburse_notes,
+                profit_share_status: v.profit_share_status || 'unpaid',
+                profit_share_paid_at: v.profit_share_paid_at,
+                profit_share_notes: v.profit_share_notes,
+              })) as Venue[];
+            }
+          } catch (e) {
+            // fallback to sales_id query below
+          }
           query = query.eq('sales_id', marketingId);
         }
 
@@ -370,6 +422,7 @@ class StoreRepository {
             hpp_payer: v.hpp_payer || 'marketing',
             hpp_marketing_ratio: v.hpp_marketing_ratio !== undefined && v.hpp_marketing_ratio !== null ? Number(v.hpp_marketing_ratio) : 100,
             hpp_marketing_amount: v.hpp_marketing_amount !== undefined && v.hpp_marketing_amount !== null ? Number(v.hpp_marketing_amount) : undefined,
+            hpp_bearers: Array.isArray(v.hpp_bearers) ? v.hpp_bearers : [],
             transport_fee: v.transport_fee !== undefined && v.transport_fee !== null ? Number(v.transport_fee) : 20000,
             hpp_reimburse_status: v.hpp_reimburse_status || ((v.hpp_payer === 'platform' || v.hpp_marketing_ratio === 0) ? 'not_applicable' : 'unpaid'),
             hpp_reimburse_paid_at: v.hpp_reimburse_paid_at,
@@ -411,6 +464,7 @@ class StoreRepository {
       hpp_payer: cleanHppPayer,
       hpp_marketing_ratio: cleanHppRatio,
       hpp_marketing_amount: cleanHppAmount,
+      hpp_bearers: Array.isArray(payload.hpp_bearers) ? payload.hpp_bearers : [],
       transport_fee: payload.transport_fee !== undefined ? Number(payload.transport_fee) : 20000,
       hpp_reimburse_status: payload.hpp_reimburse_status || (cleanHppRatio === 0 || cleanHppPayer === 'platform' ? 'not_applicable' : 'unpaid'),
       hpp_reimburse_paid_at: payload.hpp_reimburse_paid_at,
@@ -440,6 +494,7 @@ class StoreRepository {
             hpp_payer,
             hpp_marketing_ratio,
             hpp_marketing_amount,
+            hpp_bearers,
             transport_fee,
             hpp_reimburse_status,
             hpp_reimburse_paid_at,
@@ -499,6 +554,9 @@ class StoreRepository {
         ? Number(updates.hpp_marketing_amount)
         : null;
     }
+    if ('hpp_bearers' in updates) {
+      sanitizedUpdates.hpp_bearers = Array.isArray(updates.hpp_bearers) ? updates.hpp_bearers : [];
+    }
     if ('transport_fee' in updates) {
       sanitizedUpdates.transport_fee = Number(updates.transport_fee);
     }
@@ -543,6 +601,7 @@ class StoreRepository {
             hpp_payer,
             hpp_marketing_ratio,
             hpp_marketing_amount,
+            hpp_bearers,
             transport_fee,
             hpp_reimburse_status,
             hpp_reimburse_paid_at,
@@ -582,15 +641,16 @@ class StoreRepository {
   }
 
   async logScan(data: Omit<ScanLog, 'id' | 'scanned_at'>): Promise<ScanLog> {
-    if (isSupabaseConfigured && supabase) {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
       try {
-        const { data: logged, error } = await supabase
+        const { data: created, error } = await client
           .from('scan_logs')
           .insert([data])
           .select()
           .single();
-
-        if (!error && logged) return logged as ScanLog;
+        if (!error && created) return created as ScanLog;
+        if (error) console.warn('Supabase logScan error:', error);
       } catch (err) {
         console.warn('Supabase logScan error, using fallback:', err);
       }
@@ -599,15 +659,16 @@ class StoreRepository {
   }
 
   async saveFeedback(data: Omit<FeedbackMessage, 'id' | 'created_at'>): Promise<FeedbackMessage> {
-    if (isSupabaseConfigured && supabase) {
+    const client = supabaseAdmin || supabase;
+    if (isSupabaseConfigured && client) {
       try {
-        const { data: saved, error } = await supabase
+        const { data: created, error } = await client
           .from('feedback_messages')
           .insert([data])
           .select()
           .single();
-
-        if (!error && saved) return saved as FeedbackMessage;
+        if (!error && created) return created as FeedbackMessage;
+        if (error) console.warn('Supabase saveFeedback error:', error);
       } catch (err) {
         console.warn('Supabase saveFeedback error, using fallback:', err);
       }
@@ -624,8 +685,8 @@ class StoreRepository {
           .select('*')
           .eq('venue_id', venueId)
           .order('created_at', { ascending: false });
-
         if (!error && data) return data as FeedbackMessage[];
+        if (error) console.warn('Supabase listFeedback error:', error);
       } catch (err) {
         console.warn('Supabase listFeedback error, using fallback:', err);
       }
@@ -639,16 +700,17 @@ class StoreRepository {
       try {
         const { data: logs, error } = await client
           .from('scan_logs')
-          .select('*')
+          .select('action_taken, scanned_at')
           .eq('venue_id', venueId);
 
         if (!error && logs) {
           const today = new Date().toISOString().split('T')[0];
           const total_scans = logs.length;
-          const positive_count = logs.filter((l: ScanLog) => l.action_taken === 'positive_review').length;
-          const negative_count = logs.filter((l: ScanLog) => l.action_taken === 'negative_feedback').length;
-          const direct_count = logs.filter((l: ScanLog) => l.action_taken === 'direct_redirect').length;
-          const today_scans = logs.filter((l: ScanLog) => l.scanned_at?.startsWith(today)).length;
+          const positive_count = logs.filter((l: any) => l.action_taken === 'positive_review').length;
+          const negative_count = logs.filter((l: any) => l.action_taken === 'negative_feedback').length;
+          const direct_count = logs.filter((l: any) => l.action_taken === 'direct_redirect').length;
+          const today_scans = logs.filter((l: any) => l.scanned_at?.startsWith(today)).length;
+
           const rated_total = positive_count + negative_count;
           const satisfaction_rate = rated_total > 0 ? Math.round((positive_count / rated_total) * 100) : 100;
 
@@ -673,11 +735,19 @@ class StoreRepository {
     if (isSupabaseConfigured && client) {
       try {
         const { data: agents } = await client.from('sales_agents').select('*');
-        const { data: allVenues } = await client.from('venues').select('sales_id, deal_amount, hpp, hpp_payer, hpp_marketing_ratio, hpp_marketing_amount, transport_fee');
+        const { data: allVenues } = await client
+          .from('venues')
+          .select('sales_id, marketing_id, deal_amount, hpp, hpp_payer, hpp_marketing_ratio, hpp_marketing_amount, hpp_bearers, transport_fee');
 
         if (agents && agents.length > 0) {
           return agents.map((agent: any) => {
-            const agentVenues = (allVenues || []).filter((v: any) => v.sales_id === agent.id);
+            const agentVenues = (allVenues || []).filter(
+              (v: any) =>
+                v.sales_id === agent.id ||
+                v.marketing_id === agent.id ||
+                (Array.isArray(v.hpp_bearers) &&
+                  v.hpp_bearers.some((b: any) => b.type === 'marketing' && b.specialist_id === agent.id))
+            );
             const total_venues = agentVenues.length;
             const total_revenue = agentVenues.reduce((sum: number, v: any) => sum + (Number(v.deal_amount) || 0), 0);
             const earned_commission = agentVenues.reduce((sum: number, v: any) => {
@@ -687,8 +757,21 @@ class StoreRepository {
                 hpp_payer: v.hpp_payer,
                 hpp_marketing_ratio: v.hpp_marketing_ratio,
                 hpp_marketing_amount: v.hpp_marketing_amount,
+                hpp_bearers: v.hpp_bearers,
+                closing_specialist_id: v.sales_id || v.marketing_id,
                 transport_fee: v.transport_fee,
               });
+
+              if (v.hpp_bearers && Array.isArray(v.hpp_bearers) && v.hpp_bearers.length > 0) {
+                const myBearers = dist.bearers_summary.filter(
+                  (b) => b.bearer.type === 'marketing' && b.bearer.specialist_id === agent.id
+                );
+                const bearerEarnings = myBearers.reduce((bSum, b) => bSum + b.total_payout, 0);
+                const isCloser = (v.sales_id === agent.id || v.marketing_id === agent.id);
+                const closerBonus = (isCloser && myBearers.length === 0) ? dist.marketing_transport : 0;
+                return sum + bearerEarnings + closerBonus;
+              }
+
               return sum + dist.marketing_total_payout;
             }, 0);
 

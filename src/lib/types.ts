@@ -33,6 +33,22 @@ export type PaymentStatus = 'pending' | 'approved' | 'rejected';
 export type BillingType = 'one_time' | 'subscription';
 export type HppPayerType = 'marketing' | 'platform' | 'split';
 export type SettlementStatus = 'unpaid' | 'paid' | 'not_applicable';
+export type BearerType = 'platform' | 'marketing';
+
+export interface HppBearer {
+  id: string; // unique entry id
+  type: BearerType;
+  specialist_id?: string | null; // ID marketing specialist jika type === 'marketing'
+  name: string; // e.g. "Platform / Agency" atau "Budi Santoso"
+  amount: number; // Nominal Rupiah yang ditanggung
+  ratio: number; // Persentase dari total HPP (0-100)
+  reimburse_status?: SettlementStatus; // 'unpaid' | 'paid' | 'not_applicable'
+  reimburse_paid_at?: string | null;
+  reimburse_notes?: string;
+  profit_share_status?: SettlementStatus; // 'unpaid' | 'paid'
+  profit_share_paid_at?: string | null;
+  profit_share_notes?: string;
+}
 
 export interface Venue {
   id: string;
@@ -54,13 +70,14 @@ export interface Venue {
   hpp_payer?: HppPayerType; // Penanggung HPP: 'marketing' | 'platform' | 'split'
   hpp_marketing_ratio?: number; // Persentase HPP ditanggung marketing (0-100)
   hpp_marketing_amount?: number; // Nominal pasti Rupiah HPP yang ditanggung marketing
+  hpp_bearers?: HppBearer[]; // Daftar seluruh penanggung modal HPP (multi-bearer)
   transport_fee?: number; // Flat uang transportasi marketing specialist (default 20.000)
   // Settlement Tracking (Opsi B)
   hpp_reimburse_status?: SettlementStatus; // 'unpaid' | 'paid' | 'not_applicable'
-  hpp_reimburse_paid_at?: string;
+  hpp_reimburse_paid_at?: string | null;
   hpp_reimburse_notes?: string;
   profit_share_status?: SettlementStatus; // 'unpaid' | 'paid'
-  profit_share_paid_at?: string;
+  profit_share_paid_at?: string | null;
   profit_share_notes?: string;
   monthly_retainer_fee: number;
   deal_date: string;
