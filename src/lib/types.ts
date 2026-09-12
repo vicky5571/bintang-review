@@ -53,6 +53,7 @@ export interface Venue {
   hpp: number; // Harga Pokok Penjualan / Modal per unit stand akrilik & setup
   hpp_payer?: HppPayerType; // Penanggung HPP: 'marketing' | 'platform' | 'split'
   hpp_marketing_ratio?: number; // Persentase HPP ditanggung marketing (0-100)
+  hpp_marketing_amount?: number; // Nominal pasti Rupiah HPP yang ditanggung marketing
   transport_fee?: number; // Flat uang transportasi marketing specialist (default 20.000)
   // Settlement Tracking (Opsi B)
   hpp_reimburse_status?: SettlementStatus; // 'unpaid' | 'paid' | 'not_applicable'

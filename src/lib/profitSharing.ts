@@ -5,6 +5,7 @@ export interface ProfitDistributionParams {
   hpp: number;
   hpp_payer?: HppPayerType;
   hpp_marketing_ratio?: number; // 0 to 100 (percentage borne by marketing)
+  hpp_marketing_amount?: number; // Exact Rupiah nominal borne by marketing
   transport_fee?: number; // Default flat Rp 20.000
 }
 
@@ -14,6 +15,8 @@ export interface ProfitDistributionResult {
   hpp_payer: HppPayerType;
   hpp_marketing_ratio: number;
   hpp_platform_ratio: number;
+  hpp_marketing_amount: number;
+  hpp_platform_amount: number;
 
   // Step 1: Reimburse HPP
   reimburse_marketing: number;
@@ -36,8 +39,8 @@ export interface ProfitDistributionResult {
   platform_total_payout: number; // reimburse_platform + platform_fee_10 + platform_final_share
 
   // Laba Bersih Murni (Net profit di atas modal HPP yang dikeluarkan)
-  marketing_net_income: number; // marketing_total_payout - (hpp * marketing_ratio / 100)
-  platform_net_income: number; // platform_total_payout - (hpp * platform_ratio / 100)
+  marketing_net_income: number; // marketing_total_payout - reimburse_marketing
+  platform_net_income: number; // platform_total_payout - reimburse_platform
 }
 
 export function calculateProfitDistribution(params: ProfitDistributionParams): ProfitDistributionResult {
@@ -45,26 +48,57 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
   const hpp = Math.max(0, Number(params.hpp) || 0);
   const defaultTransport = params.transport_fee !== undefined ? Number(params.transport_fee) : 20000;
 
-  // Determine ratio
+  // Determine ratio and exact reimbursement amounts
   let hpp_payer: HppPayerType = params.hpp_payer || 'marketing';
   let hpp_marketing_ratio = 100;
+  let reimburse_marketing = hpp;
+  let reimburse_platform = 0;
 
-  if (params.hpp_marketing_ratio !== undefined) {
+  if (params.hpp_marketing_amount !== undefined && params.hpp_marketing_amount !== null && !isNaN(Number(params.hpp_marketing_amount))) {
+    // 1. Exact Rupiah nominal is explicitly provided
+    const rawMarketingAmount = Math.max(0, Number(params.hpp_marketing_amount) || 0);
+    // Clamp to [0, hpp]
+    reimburse_marketing = Math.min(hpp, rawMarketingAmount);
+    reimburse_platform = hpp - reimburse_marketing;
+
+    if (hpp > 0) {
+      hpp_marketing_ratio = (reimburse_marketing / hpp) * 100;
+    } else {
+      hpp_marketing_ratio = params.hpp_marketing_ratio !== undefined ? Number(params.hpp_marketing_ratio) : 100;
+    }
+
+    if (reimburse_marketing === hpp) hpp_payer = 'marketing';
+    else if (reimburse_marketing === 0) hpp_payer = 'platform';
+    else hpp_payer = 'split';
+  } else if (params.hpp_marketing_ratio !== undefined && params.hpp_marketing_ratio !== null && !isNaN(Number(params.hpp_marketing_ratio))) {
+    // 2. Percentage ratio is provided
     hpp_marketing_ratio = Math.min(100, Math.max(0, Number(params.hpp_marketing_ratio)));
     if (hpp_marketing_ratio === 100) hpp_payer = 'marketing';
     else if (hpp_marketing_ratio === 0) hpp_payer = 'platform';
     else hpp_payer = 'split';
+
+    reimburse_marketing = Math.round((hpp * hpp_marketing_ratio) / 100);
+    reimburse_platform = hpp - reimburse_marketing;
   } else {
-    if (hpp_payer === 'platform') hpp_marketing_ratio = 0;
-    else if (hpp_payer === 'split') hpp_marketing_ratio = 50;
-    else hpp_marketing_ratio = 100;
+    // 3. Fallback based on hpp_payer preset
+    if (hpp_payer === 'platform') {
+      hpp_marketing_ratio = 0;
+      reimburse_marketing = 0;
+      reimburse_platform = hpp;
+    } else if (hpp_payer === 'split') {
+      hpp_marketing_ratio = 50;
+      reimburse_marketing = Math.round(hpp * 0.5);
+      reimburse_platform = hpp - reimburse_marketing;
+    } else {
+      hpp_marketing_ratio = 100;
+      reimburse_marketing = hpp;
+      reimburse_platform = 0;
+    }
   }
 
   const hpp_platform_ratio = 100 - hpp_marketing_ratio;
-
-  // Step 1: Reimburse HPP
-  const reimburse_marketing = Math.round((hpp * hpp_marketing_ratio) / 100);
-  const reimburse_platform = hpp - reimburse_marketing;
+  const hpp_marketing_amount = reimburse_marketing;
+  const hpp_platform_amount = reimburse_platform;
 
   // Step 2: Sisa Profit Kotor
   const gross_profit = Math.max(0, deal_amount - hpp);
@@ -81,7 +115,9 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
   const net_split_profit = Math.max(0, remainingAfterFee - marketing_transport);
 
   // Bagi sisa profit sesuai persentase penanggung HPP
-  const marketing_final_share = Math.round((net_split_profit * hpp_marketing_ratio) / 100);
+  // Gunakan pecahan rasio presisi (reimburse_marketing / hpp) jika hpp > 0 untuk menghindari error pembulatan persentase
+  const ratioFraction = hpp > 0 ? (reimburse_marketing / hpp) : (hpp_marketing_ratio / 100);
+  const marketing_final_share = Math.round(net_split_profit * ratioFraction);
   const platform_final_share = net_split_profit - marketing_final_share;
 
   // Total Payout
@@ -98,6 +134,8 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
     hpp_payer,
     hpp_marketing_ratio,
     hpp_platform_ratio,
+    hpp_marketing_amount,
+    hpp_platform_amount,
     reimburse_marketing,
     reimburse_platform,
     gross_profit,
@@ -135,6 +173,7 @@ export function calculateVenueSettlement(venue: {
   hpp: number;
   hpp_payer?: HppPayerType;
   hpp_marketing_ratio?: number;
+  hpp_marketing_amount?: number;
   transport_fee?: number;
   hpp_reimburse_status?: 'unpaid' | 'paid' | 'not_applicable';
   profit_share_status?: 'unpaid' | 'paid' | 'not_applicable';
@@ -144,6 +183,7 @@ export function calculateVenueSettlement(venue: {
     hpp: venue.hpp,
     hpp_payer: venue.hpp_payer,
     hpp_marketing_ratio: venue.hpp_marketing_ratio,
+    hpp_marketing_amount: venue.hpp_marketing_amount,
     transport_fee: venue.transport_fee,
   });
 

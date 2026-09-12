@@ -40,6 +40,7 @@ export function AdminVenueModal({
     hpp: number;
     hpp_payer: HppPayerType;
     hpp_marketing_ratio: number;
+    hpp_marketing_amount?: number;
     transport_fee: number;
     billing_type: BillingType;
     monthly_retainer_fee: number;
@@ -57,6 +58,7 @@ export function AdminVenueModal({
     hpp: 150000,
     hpp_payer: 'marketing',
     hpp_marketing_ratio: 100,
+    hpp_marketing_amount: 150000,
     transport_fee: 20000,
     billing_type: 'subscription',
     monthly_retainer_fee: 149000,
@@ -83,6 +85,9 @@ export function AdminVenueModal({
         hpp: venue.hpp !== undefined && venue.hpp !== null ? Number(venue.hpp) : 150000,
         hpp_payer: venue.hpp_payer || 'marketing',
         hpp_marketing_ratio: venue.hpp_marketing_ratio !== undefined ? Number(venue.hpp_marketing_ratio) : 100,
+        hpp_marketing_amount: venue.hpp_marketing_amount !== undefined && venue.hpp_marketing_amount !== null
+          ? Number(venue.hpp_marketing_amount)
+          : Math.round(((venue.hpp !== undefined ? Number(venue.hpp) : 150000) * (venue.hpp_marketing_ratio !== undefined ? Number(venue.hpp_marketing_ratio) : 100)) / 100),
         transport_fee: venue.transport_fee !== undefined ? Number(venue.transport_fee) : 20000,
         billing_type: isOneTime ? 'one_time' : 'subscription',
         monthly_retainer_fee: isOneTime ? 0 : (venue.monthly_retainer_fee || 149000),
@@ -102,6 +107,7 @@ export function AdminVenueModal({
         hpp: 150000,
         hpp_payer: 'marketing',
         hpp_marketing_ratio: 100,
+        hpp_marketing_amount: 150000,
         transport_fee: 20000,
         billing_type: 'subscription',
         monthly_retainer_fee: 149000,
@@ -126,6 +132,7 @@ export function AdminVenueModal({
     hpp: formData.hpp,
     hpp_payer: formData.hpp_payer,
     hpp_marketing_ratio: formData.hpp_marketing_ratio,
+    hpp_marketing_amount: formData.hpp_marketing_amount,
     transport_fee: formData.transport_fee,
   });
 
@@ -293,7 +300,16 @@ export function AdminVenueModal({
                   type="number"
                   min="0"
                   value={formData.hpp}
-                  onChange={(e) => setFormData({ ...formData, hpp: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const newHpp = Math.max(0, Number(e.target.value) || 0);
+                    const ratio = formData.hpp_marketing_ratio !== undefined ? formData.hpp_marketing_ratio : 50;
+                    const newMarketingAmount = Math.round((newHpp * ratio) / 100);
+                    setFormData({
+                      ...formData,
+                      hpp: newHpp,
+                      hpp_marketing_amount: formData.hpp_payer === 'platform' ? 0 : (formData.hpp_payer === 'marketing' ? newHpp : newMarketingAmount),
+                    });
+                  }}
                   className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 focus:outline-none text-xs"
                   placeholder="150000"
                 />
@@ -309,7 +325,7 @@ export function AdminVenueModal({
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, hpp_payer: 'marketing', hpp_marketing_ratio: 100 })}
+                  onClick={() => setFormData({ ...formData, hpp_payer: 'marketing', hpp_marketing_ratio: 100, hpp_marketing_amount: formData.hpp })}
                   className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
                     formData.hpp_payer === 'marketing'
                       ? 'border-[#84cc16] bg-lime-50 text-slate-900 ring-1 ring-[#84cc16]'
@@ -323,7 +339,7 @@ export function AdminVenueModal({
 
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, hpp_payer: 'platform', hpp_marketing_ratio: 0 })}
+                  onClick={() => setFormData({ ...formData, hpp_payer: 'platform', hpp_marketing_ratio: 0, hpp_marketing_amount: 0 })}
                   className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
                     formData.hpp_payer === 'platform'
                       ? 'border-cyan-500 bg-cyan-50 text-slate-900 ring-1 ring-cyan-500'
@@ -337,7 +353,10 @@ export function AdminVenueModal({
 
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, hpp_payer: 'split', hpp_marketing_ratio: 50 })}
+                  onClick={() => {
+                    const half = Math.round(formData.hpp * 0.5);
+                    setFormData({ ...formData, hpp_payer: 'split', hpp_marketing_ratio: 50, hpp_marketing_amount: half });
+                  }}
                   className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
                     formData.hpp_payer === 'split'
                       ? 'border-indigo-500 bg-indigo-50 text-slate-900 ring-1 ring-indigo-500'
@@ -346,26 +365,134 @@ export function AdminVenueModal({
                 >
                   <Percent className="w-3.5 h-3.5 mb-1 text-indigo-600" />
                   <span className="text-[11px] font-bold">Split Bersama</span>
-                  <span className="text-[9px] text-slate-400">{formData.hpp_marketing_ratio}% : {100 - formData.hpp_marketing_ratio}%</span>
+                  <span className="text-[9px] text-slate-400">Atur Nominal Rupiah</span>
                 </button>
               </div>
 
               {formData.hpp_payer === 'split' && (
-                <div className="mt-2 p-2.5 bg-indigo-50/60 border border-indigo-100 rounded-xl flex items-center justify-between text-xs">
-                  <span className="text-slate-600 font-medium">Porsi HPP Marketing:</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="5"
-                      value={formData.hpp_marketing_ratio}
-                      onChange={(e) => setFormData({ ...formData, hpp_marketing_ratio: Number(e.target.value) })}
-                      className="w-28 accent-indigo-600 cursor-pointer"
-                    />
-                    <span className="font-bold font-mono text-indigo-700 w-12 text-right">
-                      {formData.hpp_marketing_ratio}%
+                <div className="mt-2.5 p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl space-y-3 text-xs">
+                  <div className="flex items-center justify-between border-b border-indigo-100 pb-2">
+                    <span className="font-bold text-indigo-900 flex items-center gap-1.5">
+                      <Percent className="w-3.5 h-3.5 text-indigo-600" />
+                      Atur Porsi Modal HPP (Angka Rupiah)
                     </span>
+                    <span className="text-[11px] text-indigo-700 font-bold">
+                      Total HPP: Rp {formData.hpp.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+
+                  {/* Dual Rupiah Inputs with bi-directional auto sync */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                        Porsi Marketing (Rp)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={formData.hpp}
+                        value={formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100)}
+                        onChange={(e) => {
+                          const raw = Number(e.target.value) || 0;
+                          const clamped = Math.min(formData.hpp, Math.max(0, raw));
+                          const ratio = formData.hpp > 0 ? (clamped / formData.hpp) * 100 : 50;
+                          setFormData({
+                            ...formData,
+                            hpp_marketing_amount: clamped,
+                            hpp_marketing_ratio: ratio,
+                          });
+                        }}
+                        className="w-full px-2.5 py-1.5 border border-indigo-200 rounded-xl font-bold text-indigo-900 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none text-xs"
+                        placeholder="50000"
+                      />
+                      <span className="text-[10px] text-indigo-600 font-semibold mt-0.5 block">
+                        {(formData.hpp > 0 ? ((formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100)) / formData.hpp) * 100 : 50).toFixed(1)}% porsi modal
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                        Porsi Platform (Rp)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={formData.hpp}
+                        value={Math.max(0, formData.hpp - (formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100)))}
+                        onChange={(e) => {
+                          const pRaw = Number(e.target.value) || 0;
+                          const pClamped = Math.min(formData.hpp, Math.max(0, pRaw));
+                          const mVal = Math.max(0, formData.hpp - pClamped);
+                          const ratio = formData.hpp > 0 ? (mVal / formData.hpp) * 100 : 50;
+                          setFormData({
+                            ...formData,
+                            hpp_marketing_amount: mVal,
+                            hpp_marketing_ratio: ratio,
+                          });
+                        }}
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl font-bold text-slate-700 bg-white focus:ring-2 focus:ring-slate-500/20 focus:outline-none text-xs"
+                        placeholder="100000"
+                      />
+                      <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
+                        {(formData.hpp > 0 ? (Math.max(0, formData.hpp - (formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100))) / formData.hpp) * 100 : 50).toFixed(1)}% porsi modal
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Preset Buttons & Fine-tuning Slider */}
+                  <div className="pt-2 border-t border-indigo-100 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-500 font-medium">Preset:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const half = Math.round(formData.hpp * 0.5);
+                          setFormData({ ...formData, hpp_marketing_amount: half, hpp_marketing_ratio: 50 });
+                        }}
+                        className="px-2 py-0.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-[10px] font-bold rounded-lg text-indigo-700 transition"
+                      >
+                        50 : 50
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const m = Math.round(formData.hpp * 0.3);
+                          setFormData({ ...formData, hpp_marketing_amount: m, hpp_marketing_ratio: 30 });
+                        }}
+                        className="px-2 py-0.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-[10px] font-bold rounded-lg text-indigo-700 transition"
+                      >
+                        30 : 70
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const m = Math.round(formData.hpp * 0.7);
+                          setFormData({ ...formData, hpp_marketing_amount: m, hpp_marketing_ratio: 70 });
+                        }}
+                        className="px-2 py-0.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-[10px] font-bold rounded-lg text-indigo-700 transition"
+                      >
+                        70 : 30
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={Math.round(formData.hpp > 0 ? ((formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100)) / formData.hpp) * 100 : 50)}
+                        onChange={(e) => {
+                          const r = Number(e.target.value);
+                          const amt = Math.round((formData.hpp * r) / 100);
+                          setFormData({ ...formData, hpp_marketing_ratio: r, hpp_marketing_amount: amt });
+                        }}
+                        className="w-20 accent-indigo-600 cursor-pointer"
+                      />
+                      <span className="text-[10px] font-mono font-bold text-indigo-700">
+                        {Math.round(formData.hpp > 0 ? ((formData.hpp_marketing_amount !== undefined ? formData.hpp_marketing_amount : Math.round((formData.hpp * (formData.hpp_marketing_ratio || 50)) / 100)) / formData.hpp) * 100 : 50)}%
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}

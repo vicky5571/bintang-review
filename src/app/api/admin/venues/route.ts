@@ -49,6 +49,7 @@ export async function POST(request: Request) {
       hpp,
       hpp_payer,
       hpp_marketing_ratio,
+      hpp_marketing_amount,
       transport_fee,
       billing_type,
       monthly_retainer_fee,
@@ -76,10 +77,21 @@ export async function POST(request: Request) {
     const cleanDealAmount = Number(selling_price !== undefined ? selling_price : deal_amount) || 0;
     const cleanHpp = hpp !== undefined ? Number(hpp) : 150000;
     const cleanHppPayer = ['marketing', 'platform', 'split'].includes(hpp_payer) ? hpp_payer : 'marketing';
-    const cleanHppMarketingRatio =
-      hpp_marketing_ratio !== undefined
-        ? Math.min(100, Math.max(0, Number(hpp_marketing_ratio)))
-        : (cleanHppPayer === 'platform' ? 0 : (cleanHppPayer === 'split' ? 50 : 100));
+
+    let cleanHppMarketingAmount: number | undefined = undefined;
+    let cleanHppMarketingRatio: number = 100;
+
+    if (hpp_marketing_amount !== undefined && hpp_marketing_amount !== null && !isNaN(Number(hpp_marketing_amount))) {
+      cleanHppMarketingAmount = Math.min(cleanHpp, Math.max(0, Number(hpp_marketing_amount)));
+      cleanHppMarketingRatio = cleanHpp > 0 ? (cleanHppMarketingAmount / cleanHpp) * 100 : 100;
+    } else if (hpp_marketing_ratio !== undefined) {
+      cleanHppMarketingRatio = Math.min(100, Math.max(0, Number(hpp_marketing_ratio)));
+      cleanHppMarketingAmount = Math.round((cleanHpp * cleanHppMarketingRatio) / 100);
+    } else {
+      cleanHppMarketingRatio = cleanHppPayer === 'platform' ? 0 : (cleanHppPayer === 'split' ? 50 : 100);
+      cleanHppMarketingAmount = Math.round((cleanHpp * cleanHppMarketingRatio) / 100);
+    }
+
     const cleanTransportFee = transport_fee !== undefined ? Math.max(0, Number(transport_fee)) : 20000;
 
     const payload: any = {
@@ -97,6 +109,7 @@ export async function POST(request: Request) {
       hpp: cleanHpp,
       hpp_payer: cleanHppPayer,
       hpp_marketing_ratio: cleanHppMarketingRatio,
+      hpp_marketing_amount: cleanHppMarketingAmount,
       transport_fee: cleanTransportFee,
       billing_type: cleanBillingType,
       monthly_retainer_fee: cleanRetainer,

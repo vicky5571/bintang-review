@@ -205,6 +205,7 @@ export default function AdminPage() {
       hpp: v.hpp,
       hpp_payer: v.hpp_payer,
       hpp_marketing_ratio: v.hpp_marketing_ratio,
+      hpp_marketing_amount: v.hpp_marketing_amount,
       transport_fee: v.transport_fee,
     });
     const settlement = calculateVenueSettlement(v);
@@ -462,6 +463,7 @@ export default function AdminPage() {
                       hpp: v.hpp,
                       hpp_payer: v.hpp_payer,
                       hpp_marketing_ratio: v.hpp_marketing_ratio,
+                      hpp_marketing_amount: v.hpp_marketing_amount,
                       transport_fee: v.transport_fee,
                     });
                     const settlement = item ? item.settlement : calculateVenueSettlement(v);
@@ -556,7 +558,7 @@ export default function AdminPage() {
                               {v.hpp_payer === 'platform'
                                 ? 'Modal: 100% Platform'
                                 : v.hpp_payer === 'split'
-                                ? `Modal: Split (${v.hpp_marketing_ratio || 50}% : ${100 - (v.hpp_marketing_ratio || 50)}%)`
+                                ? `Modal: Split (Rp ${dist.reimburse_marketing.toLocaleString('id-ID')} : Rp ${dist.reimburse_platform.toLocaleString('id-ID')})`
                                 : 'Modal: 100% Marketing'}
                             </div>
                           </div>

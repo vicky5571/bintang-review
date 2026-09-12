@@ -99,6 +99,7 @@ class InMemoryStore {
       hpp: data.hpp !== undefined ? Number(data.hpp) : 150000,
       hpp_payer: data.hpp_payer || 'marketing',
       hpp_marketing_ratio: data.hpp_marketing_ratio !== undefined ? Number(data.hpp_marketing_ratio) : (data.hpp_payer === 'platform' ? 0 : (data.hpp_payer === 'split' ? 50 : 100)),
+      hpp_marketing_amount: data.hpp_marketing_amount !== undefined ? Number(data.hpp_marketing_amount) : undefined,
       transport_fee: data.transport_fee !== undefined ? Number(data.transport_fee) : 20000,
       hpp_reimburse_status: data.hpp_reimburse_status || ((data.hpp_payer === 'platform' || data.hpp_marketing_ratio === 0) ? 'not_applicable' : 'unpaid'),
       hpp_reimburse_paid_at: data.hpp_reimburse_paid_at,
@@ -368,6 +369,7 @@ class StoreRepository {
             hpp: v.hpp !== undefined && v.hpp !== null ? Number(v.hpp) : 150000,
             hpp_payer: v.hpp_payer || 'marketing',
             hpp_marketing_ratio: v.hpp_marketing_ratio !== undefined && v.hpp_marketing_ratio !== null ? Number(v.hpp_marketing_ratio) : 100,
+            hpp_marketing_amount: v.hpp_marketing_amount !== undefined && v.hpp_marketing_amount !== null ? Number(v.hpp_marketing_amount) : undefined,
             transport_fee: v.transport_fee !== undefined && v.transport_fee !== null ? Number(v.transport_fee) : 20000,
             hpp_reimburse_status: v.hpp_reimburse_status || ((v.hpp_payer === 'platform' || v.hpp_marketing_ratio === 0) ? 'not_applicable' : 'unpaid'),
             hpp_reimburse_paid_at: v.hpp_reimburse_paid_at,
@@ -400,6 +402,7 @@ class StoreRepository {
 
     const cleanHppPayer = payload.hpp_payer || 'marketing';
     const cleanHppRatio = payload.hpp_marketing_ratio !== undefined ? Number(payload.hpp_marketing_ratio) : (cleanHppPayer === 'platform' ? 0 : (cleanHppPayer === 'split' ? 50 : 100));
+    const cleanHppAmount = payload.hpp_marketing_amount !== undefined ? Number(payload.hpp_marketing_amount) : undefined;
 
     const sanitizedPayload = {
       ...payload,
@@ -407,6 +410,7 @@ class StoreRepository {
       hpp: payload.hpp !== undefined ? Number(payload.hpp) : 150000,
       hpp_payer: cleanHppPayer,
       hpp_marketing_ratio: cleanHppRatio,
+      hpp_marketing_amount: cleanHppAmount,
       transport_fee: payload.transport_fee !== undefined ? Number(payload.transport_fee) : 20000,
       hpp_reimburse_status: payload.hpp_reimburse_status || (cleanHppRatio === 0 || cleanHppPayer === 'platform' ? 'not_applicable' : 'unpaid'),
       hpp_reimburse_paid_at: payload.hpp_reimburse_paid_at,
@@ -435,6 +439,7 @@ class StoreRepository {
             hpp,
             hpp_payer,
             hpp_marketing_ratio,
+            hpp_marketing_amount,
             transport_fee,
             hpp_reimburse_status,
             hpp_reimburse_paid_at,
@@ -489,6 +494,11 @@ class StoreRepository {
     if ('hpp_marketing_ratio' in updates) {
       sanitizedUpdates.hpp_marketing_ratio = Number(updates.hpp_marketing_ratio);
     }
+    if ('hpp_marketing_amount' in updates) {
+      sanitizedUpdates.hpp_marketing_amount = updates.hpp_marketing_amount !== undefined && updates.hpp_marketing_amount !== null
+        ? Number(updates.hpp_marketing_amount)
+        : null;
+    }
     if ('transport_fee' in updates) {
       sanitizedUpdates.transport_fee = Number(updates.transport_fee);
     }
@@ -532,6 +542,7 @@ class StoreRepository {
             hpp,
             hpp_payer,
             hpp_marketing_ratio,
+            hpp_marketing_amount,
             transport_fee,
             hpp_reimburse_status,
             hpp_reimburse_paid_at,
@@ -662,7 +673,7 @@ class StoreRepository {
     if (isSupabaseConfigured && client) {
       try {
         const { data: agents } = await client.from('sales_agents').select('*');
-        const { data: allVenues } = await client.from('venues').select('sales_id, deal_amount, hpp, hpp_payer, hpp_marketing_ratio, transport_fee');
+        const { data: allVenues } = await client.from('venues').select('sales_id, deal_amount, hpp, hpp_payer, hpp_marketing_ratio, hpp_marketing_amount, transport_fee');
 
         if (agents && agents.length > 0) {
           return agents.map((agent: any) => {
@@ -675,6 +686,7 @@ class StoreRepository {
                 hpp: v.hpp,
                 hpp_payer: v.hpp_payer,
                 hpp_marketing_ratio: v.hpp_marketing_ratio,
+                hpp_marketing_amount: v.hpp_marketing_amount,
                 transport_fee: v.transport_fee,
               });
               return sum + dist.marketing_total_payout;

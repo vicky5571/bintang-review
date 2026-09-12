@@ -26,6 +26,7 @@ export function AdminSettlementModal({
     hpp: venue.hpp,
     hpp_payer: venue.hpp_payer,
     hpp_marketing_ratio: venue.hpp_marketing_ratio,
+    hpp_marketing_amount: venue.hpp_marketing_amount,
     transport_fee: venue.transport_fee,
   });
 
@@ -84,11 +85,11 @@ export function AdminSettlementModal({
           <div className="mt-3 p-3 bg-indigo-50/80 border border-indigo-200/80 rounded-2xl text-[11px] text-indigo-950 space-y-1.5">
             <div className="font-bold flex items-center gap-1.5 text-indigo-800">
               <Percent className="w-3.5 h-3.5 text-indigo-600" />
-              Penanggung HPP: 2 Pihak (Split {dist.hpp_marketing_ratio}% : {dist.hpp_platform_ratio}%)
+              Penanggung HPP: 2 Pihak (Split {dist.hpp_marketing_ratio.toFixed(1)}% : {dist.hpp_platform_ratio.toFixed(1)}%)
             </div>
             <p className="text-slate-600 text-[11px] leading-relaxed">
               Total HPP adalah <strong>Rp {dist.hpp.toLocaleString('id-ID')}</strong>.
-              Marketing Specialist menanggung <strong>Rp {dist.reimburse_marketing.toLocaleString('id-ID')}</strong> ({dist.hpp_marketing_ratio}%), sedangkan Platform menanggung <strong>Rp {dist.reimburse_platform.toLocaleString('id-ID')}</strong> ({dist.hpp_platform_ratio}%).
+              Marketing Specialist menanggung <strong>Rp {dist.reimburse_marketing.toLocaleString('id-ID')}</strong> ({dist.hpp_marketing_ratio.toFixed(1)}%), sedangkan Platform menanggung <strong>Rp {dist.reimburse_platform.toLocaleString('id-ID')}</strong> ({dist.hpp_platform_ratio.toFixed(1)}%).
             </p>
             <div className="p-2 bg-white/80 rounded-xl border border-indigo-100 flex items-center justify-between text-[11px]">
               <span className="text-slate-500">Porsi HPP Platform (Kas Internal):</span>

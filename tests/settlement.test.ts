@@ -138,6 +138,69 @@ describe('Option B Settlement & Multi-Bearer HPP Tracking', () => {
       expect(res.profit_share_marketing).toBe(32900);
       expect(res.total_unpaid_marketing).toBe(9000 + 32900);
     });
+
+    it('Scenario 5: Exact Rupiah Input for Split HPP without percentage rounding error', () => {
+      // User sets exact Rupiah nominal: Total HPP 150.000, Marketing Rp 50.000 (1/3), Platform Rp 100.000 (2/3)
+      // Deal 599.000. Gross profit = 449.000
+      // Platform fee 10% = 44.900. Transport = 20.000. Net split profit = 384.100
+      // Marketing share (1/3 of 384.100) = Math.round(384.100 * (50000/150000)) = 128.033
+      // Platform share = 384.100 - 128.033 = 256.067
+      const res = calculateVenueSettlement({
+        deal_amount: 599000,
+        hpp: 150000,
+        hpp_payer: 'split',
+        hpp_marketing_amount: 50000,
+        transport_fee: 20000,
+        hpp_reimburse_status: 'unpaid',
+        profit_share_status: 'unpaid',
+      });
+
+      expect(res.reimburse_marketing).toBe(50000); // Exactly Rp 50.000, NOT Rp 49.999!
+      expect(res.unpaid_reimburse_marketing).toBe(50000);
+      expect(res.profit_share_marketing).toBe(20000 + 128033);
+      expect(res.total_unpaid_marketing).toBe(50000 + 20000 + 128033);
+
+      // Verify that after marking HPP paid:
+      const paidRes = calculateVenueSettlement({
+        deal_amount: 599000,
+        hpp: 150000,
+        hpp_payer: 'split',
+        hpp_marketing_amount: 50000,
+        transport_fee: 20000,
+        hpp_reimburse_status: 'paid',
+        profit_share_status: 'unpaid',
+      });
+
+      expect(paidRes.unpaid_reimburse_marketing).toBe(0);
+      expect(paidRes.paid_reimburse_marketing).toBe(50000);
+    });
+
+    it('Scenario 6: Fault tolerance with 0 HPP and out-of-bounds Rupiah inputs (prevents NaN or divide-by-zero)', () => {
+      // HPP is 0
+      const zeroHpp = calculateVenueSettlement({
+        deal_amount: 100000,
+        hpp: 0,
+        hpp_payer: 'split',
+        hpp_marketing_amount: 0,
+        transport_fee: 20000,
+      });
+
+      expect(zeroHpp.reimburse_marketing).toBe(0);
+      expect(zeroHpp.reimburse_status).toBe('not_applicable');
+      expect(isNaN(zeroHpp.total_unpaid_marketing)).toBe(false);
+
+      // Marketing amount greater than HPP (should clamp safely)
+      const clampedRes = calculateVenueSettlement({
+        deal_amount: 100000,
+        hpp: 30000,
+        hpp_payer: 'split',
+        hpp_marketing_amount: 999999, // Exceeds 30.000
+        transport_fee: 20000,
+      });
+
+      expect(clampedRes.reimburse_marketing).toBe(30000); // Clamped to max HPP
+      expect(isNaN(clampedRes.total_unpaid_marketing)).toBe(false);
+    });
   });
 
   describe('API PATCH /api/admin/venues/settlement', () => {
