@@ -42,7 +42,9 @@ export function FunnelRating({ venue }: FunnelRatingProps) {
 
       // Smooth auto forward to Google Maps Review
       setTimeout(() => {
-        window.location.replace(venue.google_review_url);
+        if (venue.google_review_url && venue.google_review_url.trim() !== '') {
+          window.location.replace(venue.google_review_url);
+        }
       }, 900);
     } else {
       // 1 to 3 stars: Open private feedback modal

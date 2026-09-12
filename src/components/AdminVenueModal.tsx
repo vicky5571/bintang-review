@@ -169,7 +169,7 @@ export function AdminVenueModal({
       setFormData({
         name: venue.name,
         slug: venue.slug,
-        google_review_url: venue.google_review_url,
+        google_review_url: venue.google_review_url || '',
         redirect_mode: venue.redirect_mode,
         feedback_channels: venue.feedback_channels,
         whatsapp_number: venue.whatsapp_number || '',
@@ -440,15 +440,24 @@ export function AdminVenueModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600">Google Review Write URL *</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-700">
+                Google Review Write URL (Opsional)
+              </label>
+              <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-medium">
+                Bisa dikosongkan untuk stok
+              </span>
+            </div>
             <input
-              required
               type="url"
               value={formData.google_review_url}
               onChange={(e) => setFormData({ ...formData, google_review_url: e.target.value })}
               className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-mono text-xs focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
-              placeholder="https://search.google.com/local/writereview?placeid=..."
+              placeholder="https://search.google.com/local/writereview?placeid=... (Kosongkan jika stok belum laku)"
             />
+            <p className="text-[10px] text-slate-400 mt-1">
+              💡 <strong>Alur Stok QR Akrilik:</strong> Anda dapat membuat QR code fisik terlebih dahulu tanpa mengisi URL. Saat stand sudah laku terjual ke klien, URL dapat diisi kapan saja melalui tombol Edit.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

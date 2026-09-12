@@ -474,7 +474,16 @@ export default function AdminPage() {
 
                     return (
                       <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-6 py-4 font-bold text-slate-900">{v.name}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900">{v.name}</span>
+                            {(!v.google_review_url || v.google_review_url.trim() === '') && (
+                              <span className="text-[9px] bg-amber-100 text-amber-800 font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                Stok
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-6 py-4">
                           <a
                             href={`/r/${v.slug}`}
@@ -486,15 +495,26 @@ export default function AdminPage() {
                           </a>
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                              v.redirect_mode === 'smart_funnel'
-                                ? 'bg-lime-50 text-lime-800 border border-lime-200/80'
-                                : 'bg-cyan-50 text-cyan-800 border border-cyan-200/80'
-                            }`}
-                          >
-                            {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
-                          </span>
+                          <div className="space-y-1">
+                            <span
+                              className={`text-xs px-2.5 py-1 rounded-full font-medium inline-block ${
+                                v.redirect_mode === 'smart_funnel'
+                                  ? 'bg-lime-50 text-lime-800 border border-lime-200/80'
+                                  : 'bg-cyan-50 text-cyan-800 border border-cyan-200/80'
+                              }`}
+                            >
+                              {v.redirect_mode === 'smart_funnel' ? '⭐ Smart Funnel' : '⚡ 1-Click Direct'}
+                            </span>
+                            {!v.google_review_url || v.google_review_url.trim() === '' ? (
+                              <span className="block text-[10px] text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded font-bold">
+                                📦 Stok Siap Pakai (Tanpa URL)
+                              </span>
+                            ) : (
+                              <span className="block text-[10px] text-emerald-600 font-medium">
+                                🔗 Terhubung Google
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           {v.billing_type === 'one_time' || v.monthly_retainer_fee === 0 ? (

@@ -56,9 +56,9 @@ export async function POST(request: Request) {
       monthly_retainer_fee,
     } = body;
 
-    if (!name || !slug || !google_review_url || !owner_access_pin) {
+    if (!name || !slug || !owner_access_pin) {
       return NextResponse.json(
-        { error: 'Nama, slug, Google review URL, dan PIN owner wajib diisi.' },
+        { error: 'Nama, slug, dan PIN owner wajib diisi.' },
         { status: 400 }
       );
     }
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
     const payload: any = {
       name: name.trim(),
       slug: slug.trim().toLowerCase().replace(/\s+/g, '-'),
-      google_review_url: google_review_url.trim(),
+      google_review_url: (google_review_url || '').trim(),
       redirect_mode: redirect_mode || 'smart_funnel',
       feedback_channels: feedback_channels || 'whatsapp',
       whatsapp_number: whatsapp_number?.trim() || undefined,

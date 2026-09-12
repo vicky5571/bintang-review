@@ -98,6 +98,7 @@ export class InMemoryStore {
     const marketing_id = data.marketing_id || data.sales_id || null;
     const newVenue: Venue = {
       ...data,
+      google_review_url: (data.google_review_url || '').trim(),
       marketing_id,
       sales_id: marketing_id,
       billing_type,
@@ -139,6 +140,7 @@ export class InMemoryStore {
       ...updates,
       billing_type,
       monthly_retainer_fee: billing_type === 'one_time' ? 0 : (updates.monthly_retainer_fee !== undefined ? updates.monthly_retainer_fee : current.monthly_retainer_fee),
+      google_review_url: updates.google_review_url !== undefined ? updates.google_review_url.trim() : current.google_review_url,
       hpp_bearers: updates.hpp_bearers !== undefined ? updates.hpp_bearers : current.hpp_bearers,
       updated_at: new Date().toISOString(),
     };
@@ -459,6 +461,7 @@ class StoreRepository {
 
     const sanitizedPayload = {
       ...payload,
+      google_review_url: (payload.google_review_url || '').trim(),
       deal_amount: Number(payload.deal_amount) || 0,
       hpp: payload.hpp !== undefined ? Number(payload.hpp) : 150000,
       hpp_payer: cleanHppPayer,

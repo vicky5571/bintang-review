@@ -250,4 +250,51 @@ describe('Admin Management & Auth Operations', () => {
     expect(body.salesAgent.name).toBe('Siti Aminah');
     expect(body.salesAgent.commission_rate).toBe(150000);
   });
+
+  it('should allow creating pre-fabricated stock QR stand with empty google_review_url and update when sold', async () => {
+    // 1. Create stock stand without google_review_url
+    const createReq = new Request('http://localhost:3000/api/admin/venues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Stok Stand Akrilik #101',
+        slug: 'stand-akrilik-101',
+        owner_access_pin: '1234',
+        google_review_url: '', // Empty URL for pre-fabricated inventory stock
+        deal_amount: 599000,
+        hpp: 150000,
+      }),
+    });
+
+    const createRes = await venuesPost(createReq);
+    expect(createRes.status).toBe(200);
+
+    const createBody = await createRes.json();
+    expect(createBody.success).toBe(true);
+    expect(createBody.venue.slug).toBe('stand-akrilik-101');
+    expect(createBody.venue.google_review_url).toBe('');
+
+    // 2. Later, when sold to a client, update with Google Review URL
+    const updateReq = new Request('http://localhost:3000/api/admin/venues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: createBody.venue.id,
+        name: 'Kafe Kenangan Manis (Eks Stand 101)',
+        slug: 'stand-akrilik-101',
+        owner_access_pin: '1234',
+        google_review_url: 'https://search.google.com/local/writereview?placeid=ChIJ1234567890',
+        deal_amount: 599000,
+        hpp: 150000,
+      }),
+    });
+
+    const updateRes = await venuesPost(updateReq);
+    expect(updateRes.status).toBe(200);
+
+    const updateBody = await updateRes.json();
+    expect(updateBody.success).toBe(true);
+    expect(updateBody.venue.google_review_url).toBe('https://search.google.com/local/writereview?placeid=ChIJ1234567890');
+    expect(updateBody.venue.name).toBe('Kafe Kenangan Manis (Eks Stand 101)');
+  });
 });

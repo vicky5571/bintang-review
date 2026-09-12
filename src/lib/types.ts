@@ -55,7 +55,7 @@ export interface Venue {
   slug: string;
   name: string;
   logo_url?: string;
-  google_review_url: string;
+  google_review_url?: string;
   redirect_mode: RedirectMode;
   feedback_channels: FeedbackChannel;
   whatsapp_number?: string;
