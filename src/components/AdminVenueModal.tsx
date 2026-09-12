@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Venue, MarketingSpecialistSummary, RedirectMode, FeedbackChannel, BillingType, UserRole, HppPayerType, HppBearer } from '@/lib/types';
 import { calculateProfitDistribution } from '@/lib/profitSharing';
-import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent, Trash2, PlusCircle, CheckCircle2, AlertTriangle, Users, Info, RefreshCw, Gem, Scale } from 'lucide-react';
+import { X, Save, Plus, ShieldCheck, Sparkles, UserCheck, DollarSign, Car, Building2, Briefcase, Percent, Trash2, PlusCircle, CheckCircle2, AlertTriangle, Users, Info, RefreshCw, Gem, Scale, Loader2 } from 'lucide-react';
 
 interface AdminVenueModalProps {
   venue: Venue | null;
@@ -12,7 +12,7 @@ interface AdminVenueModalProps {
   currentRole?: UserRole;
   currentSpecialistId?: string;
   onClose: () => void;
-  onSave: (data: Partial<Venue>) => void;
+  onSave: (data: Partial<Venue>) => Promise<void> | void;
 }
 
 export function AdminVenueModal({
@@ -25,6 +25,8 @@ export function AdminVenueModal({
   onSave,
 }: AdminVenueModalProps) {
   const isMarketingSpecialistRole = currentRole === 'marketing_specialist';
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<{
     name: string;
@@ -96,6 +98,10 @@ export function AdminVenueModal({
   };
 
   useEffect(() => {
+    if (!isOpen) return;
+    setErrorMsg(null);
+    setIsSubmitting(false);
+
     const defaultMarketingId = isMarketingSpecialistRole
       ? (currentSpecialistId || '')
       : (marketingSpecialists[0]?.id || '');
@@ -223,16 +229,29 @@ export function AdminVenueModal({
         monthly_retainer_fee: 149000,
       });
     }
-  }, [venue, marketingSpecialists, isMarketingSpecialistRole, currentSpecialistId]);
+  }, [isOpen, venue, marketingSpecialists, isMarketingSpecialistRole, currentSpecialistId]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      ...formData,
-      sales_id: formData.marketing_id,
-    });
+    setErrorMsg(null);
+    setIsSubmitting(true);
+    try {
+      let cleanReviewUrl = (formData.google_review_url || '').trim();
+      if (cleanReviewUrl && !/^https?:\/\//i.test(cleanReviewUrl)) {
+        cleanReviewUrl = `https://${cleanReviewUrl}`;
+      }
+      await onSave({
+        ...formData,
+        google_review_url: cleanReviewUrl,
+        sales_id: formData.marketing_id,
+      });
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Gagal menyimpan venue. Silakan coba lagi.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const currentSpecialistObj = marketingSpecialists.find((m) => m.id === (currentSpecialistId || formData.marketing_id));
@@ -413,6 +432,13 @@ export function AdminVenueModal({
           </button>
         </div>
 
+        {errorMsg && (
+          <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700 font-medium">
+            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 text-sm">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -449,7 +475,7 @@ export function AdminVenueModal({
               </span>
             </div>
             <input
-              type="url"
+              type="text"
               value={formData.google_review_url}
               onChange={(e) => setFormData({ ...formData, google_review_url: e.target.value })}
               className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl font-mono text-xs focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none"
@@ -1069,10 +1095,17 @@ export function AdminVenueModal({
 
             <button
               type="submit"
-              className="px-5 py-2.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white font-bold rounded-xl flex items-center gap-2 shadow-md shadow-emerald-500/20 active:scale-95 transition"
+              disabled={isSubmitting}
+              className="px-5 py-2.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white font-bold rounded-xl flex items-center gap-2 shadow-md shadow-emerald-500/20 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {venue ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              {venue ? 'Simpan Perubahan' : 'Buat Venue'}
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : venue ? (
+                <Save className="w-4 h-4" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              {isSubmitting ? 'Menyimpan...' : venue ? 'Simpan Perubahan' : 'Buat Venue'}
             </button>
           </div>
         </form>

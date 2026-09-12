@@ -479,12 +479,14 @@ class StoreRepository {
       deal_date: payload.deal_date || new Date().toISOString().split('T')[0],
     };
 
+    const { marketing_id, selling_price, ...cleanDbPayload } = sanitizedPayload;
+
     const client = supabaseAdmin || supabase;
     if (isSupabaseConfigured && client) {
       try {
         let { data: created, error } = await client
           .from('venues')
-          .insert([sanitizedPayload])
+          .insert([cleanDbPayload])
           .select()
           .single();
 
@@ -506,7 +508,7 @@ class StoreRepository {
             profit_share_paid_at,
             profit_share_notes,
             ...compatiblePayload
-          } = sanitizedPayload;
+          } = cleanDbPayload;
           const retry = await client
             .from('venues')
             .insert([compatiblePayload])
@@ -517,6 +519,7 @@ class StoreRepository {
             return {
               ...retry.data,
               ...sanitizedPayload,
+              marketing_id: retry.data.sales_id || sanitizedPayload.sales_id,
             } as Venue;
           }
         }
@@ -525,6 +528,7 @@ class StoreRepository {
           return {
             ...created,
             ...sanitizedPayload,
+            marketing_id: created.sales_id || sanitizedPayload.sales_id,
           } as Venue;
         }
         if (error) console.warn('Supabase createVenue error:', error);
@@ -585,12 +589,14 @@ class StoreRepository {
       sanitizedUpdates.sales_id = updates.sales_id && String(updates.sales_id).trim() !== '' ? String(updates.sales_id).trim() : null;
     }
 
+    const { marketing_id, selling_price, ...cleanDbUpdates } = sanitizedUpdates;
+
     const client = supabaseAdmin || supabase;
     if (isSupabaseConfigured && client) {
       try {
         let { data: updated, error } = await client
           .from('venues')
-          .update(sanitizedUpdates)
+          .update(cleanDbUpdates)
           .eq('id', id)
           .select()
           .single();
@@ -613,7 +619,7 @@ class StoreRepository {
             profit_share_paid_at,
             profit_share_notes,
             ...compatibleUpdates
-          } = sanitizedUpdates;
+          } = cleanDbUpdates;
           const retry = await client
             .from('venues')
             .update(compatibleUpdates)
@@ -625,6 +631,7 @@ class StoreRepository {
             return {
               ...retry.data,
               ...sanitizedUpdates,
+              marketing_id: retry.data.sales_id || sanitizedUpdates.sales_id,
             } as Venue;
           }
         }
@@ -633,6 +640,7 @@ class StoreRepository {
           return {
             ...updated,
             ...sanitizedUpdates,
+            marketing_id: updated.sales_id || sanitizedUpdates.sales_id,
           } as Venue;
         }
         if (error) console.warn('Supabase updateVenue error:', error);
@@ -740,7 +748,7 @@ class StoreRepository {
         const { data: agents } = await client.from('sales_agents').select('*');
         const { data: allVenues } = await client
           .from('venues')
-          .select('sales_id, marketing_id, deal_amount, hpp, hpp_payer, hpp_marketing_ratio, hpp_marketing_amount, hpp_bearers, transport_fee');
+          .select('sales_id, deal_amount, hpp, hpp_payer, hpp_marketing_ratio, hpp_marketing_amount, hpp_bearers, transport_fee');
 
         if (agents && agents.length > 0) {
           return agents.map((agent: any) => {

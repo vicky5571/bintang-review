@@ -118,13 +118,13 @@ export default function AdminPage() {
       const data = await res.json();
       if (data.success) {
         setIsModalOpen(false);
-        loadData();
+        await loadData();
       } else {
-        alert(data.error || 'Gagal menyimpan venue');
+        throw new Error(data.error || 'Gagal menyimpan venue');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Save venue error:', err);
-      alert('Terjadi kesalahan saat menyimpan venue.');
+      throw err;
     }
   };
 
