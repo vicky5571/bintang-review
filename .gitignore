@@ -67,3 +67,7 @@ scratch/
 
 # Added by ggshield
 .cache_ggshield
+
+# Legal & sensitive partnership agreements
+docs/legal/
+legal/
