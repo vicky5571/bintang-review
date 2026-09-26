@@ -676,7 +676,7 @@ export function AdminVenueModal({
                 onChange={handleHppChange}
                 placeholder="150.000"
                 presets={[100000, 150000, 200000]}
-                showTerbilang
+                showTerbilang={false}
                 colorScheme="amber"
                 helpText="Biaya cetak akrilik, chip NFC & packing unit."
               />
@@ -688,7 +688,7 @@ export function AdminVenueModal({
                 onChange={(val) => setFormData({ ...formData, deal_amount: val })}
                 placeholder={isQrActive ? '599.000' : '0 (Opsional jika stok)'}
                 presets={[399000, 499000, 599000, 799000]}
-                showTerbilang={formData.deal_amount > 0}
+                showTerbilang={false}
                 colorScheme="lime"
                 helpText={
                   isQrActive
@@ -1001,7 +1001,7 @@ export function AdminVenueModal({
                 onChange={(val) => setFormData({ ...formData, monthly_retainer_fee: val })}
                 placeholder="149.000"
                 presets={[99000, 149000, 199000]}
-                showTerbilang
+                showTerbilang={false}
                 colorScheme="emerald"
                 helpText="Tagihan perpanjangan rutin bulanan klien."
               />
@@ -1044,8 +1044,7 @@ export function AdminVenueModal({
               value={formData.transport_fee}
               onChange={(val) => setFormData({ ...formData, transport_fee: val })}
               placeholder="20.000"
-              presets={[15000, 20000, 30000, 50000]}
-              showTerbilang
+              showTerbilang={false}
               colorScheme="cyan"
               helpText="Diberikan langsung ke marketing specialist yang berhasil mencapai deal closing."
             />
