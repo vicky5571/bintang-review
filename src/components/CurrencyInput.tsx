@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { formatRupiahNumber, parseRupiahNumber, formatCompactRupiah, terbilangRupiah } from '@/lib/currency';
+import { formatRupiahNumber, parseRupiahNumber, terbilangRupiah } from '@/lib/currency';
 
 interface CurrencyInputProps {
   label?: string;
@@ -114,11 +114,6 @@ export function CurrencyInput({
           placeholder={placeholder}
           className="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none"
         />
-        {value > 0 && (
-          <div className="pr-2.5 text-[10px] font-semibold text-slate-400 select-none shrink-0">
-            {formatCompactRupiah(value)}
-          </div>
-        )}
       </div>
 
       {/* Option 2: Quick Preset Chips */}
