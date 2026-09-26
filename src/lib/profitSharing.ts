@@ -1,6 +1,15 @@
 import { HppBearer } from '@/lib/types';
 
 export type HppPayerType = 'marketing' | 'platform' | 'split';
+export type DeveloperFeeRecipient = 'vicky' | 'natan' | 'split';
+
+export interface DeveloperFeeDistribution {
+  developer_fee_10: number;
+  developer_fee_vicky: number;
+  developer_fee_natan: number;
+  developer_fee_recipient: DeveloperFeeRecipient;
+  developer_fee_recipient_notes: string;
+}
 
 export interface BearerSummary {
   bearer: HppBearer;
@@ -21,7 +30,8 @@ export interface ProfitDistributionParams {
   hpp_marketing_amount?: number; // Exact Rupiah nominal borne by marketing
   hpp_bearers?: HppBearer[];
   closing_specialist_id?: string | null;
-  transport_fee?: number; // Default flat Rp 20.000
+  closing_specialist_name?: string | null;
+  transport_fee?: number; // Default flat Rp 20.000 jika HPP fisik > 0, Rp 0 jika langganan / HPP = 0
 }
 
 export interface ProfitDistributionResult {
@@ -40,10 +50,16 @@ export interface ProfitDistributionResult {
   // Step 2: Sisa Profit Kotor (deal_amount - hpp)
   gross_profit: number;
 
-  // Step 3: Distribusi Sisa Profit
-  platform_fee_10: number; // 10% dari gross_profit
-  marketing_transport: number; // Flat (default 20.000)
-  net_split_profit: number; // gross_profit - platform_fee_10 - marketing_transport
+  // Step 3: Distribusi Developer Fee (10% dari gross_profit)
+  platform_fee_10: number; // Backward compatibility alias
+  developer_fee_10: number; // 10% dari gross_profit
+  developer_fee_vicky: number; // Hak Developer Fee Vicky
+  developer_fee_natan: number; // Hak Developer Fee Natan
+  developer_fee_recipient: DeveloperFeeRecipient;
+  developer_fee_recipient_notes: string;
+
+  marketing_transport: number; // Flat (default 20.000 jika HPP > 0, 0 jika subscription)
+  net_split_profit: number; // gross_profit - developer_fee_10 - marketing_transport
 
   // Pembagian Sisa Profit sesuai porsi penanggung HPP
   marketing_final_share: number;
@@ -61,24 +77,74 @@ export interface ProfitDistributionResult {
   bearers_summary: BearerSummary[];
 }
 
+export function getDeveloperFeeDistribution(
+  fee: number,
+  specialistNameOrId?: string | null
+): DeveloperFeeDistribution {
+  const norm = (specialistNameOrId || '').toLowerCase().trim();
+  const feeAmount = Math.max(0, Math.round(fee));
+
+  // If deal closed by Vicky -> 100% Developer Fee to Natan
+  const isVicky = norm.includes('vicky') || norm.includes('galih');
+  // If deal closed by Natan -> 100% Developer Fee to Vicky
+  const isNatan = norm.includes('natan') || norm.includes('setyo');
+
+  if (isVicky && !isNatan) {
+    return {
+      developer_fee_10: feeAmount,
+      developer_fee_vicky: 0,
+      developer_fee_natan: feeAmount,
+      developer_fee_recipient: 'natan',
+      developer_fee_recipient_notes: '100% dialokasikan ke Natan Setyo Agung (deal dicapai oleh Vicky Galih Pamungkas)',
+    };
+  }
+
+  if (isNatan && !isVicky) {
+    return {
+      developer_fee_10: feeAmount,
+      developer_fee_vicky: feeAmount,
+      developer_fee_natan: 0,
+      developer_fee_recipient: 'vicky',
+      developer_fee_recipient_notes: '100% dialokasikan ke Vicky Galih Pamungkas (deal dicapai oleh Natan Setyo Agung)',
+    };
+  }
+
+  // If external specialist (e.g. Budi Santoso or others), or partner not specifically identified:
+  // Split 50:50 between Vicky & Natan
+  const vickyShare = Math.round(feeAmount * 0.5);
+  const natanShare = feeAmount - vickyShare;
+
+  return {
+    developer_fee_10: feeAmount,
+    developer_fee_vicky: vickyShare,
+    developer_fee_natan: natanShare,
+    developer_fee_recipient: 'split',
+    developer_fee_recipient_notes: 'Dibagi rata 50:50 antara Vicky Galih Pamungkas & Natan Setyo Agung',
+  };
+}
+
 export function calculateProfitDistribution(params: ProfitDistributionParams): ProfitDistributionResult {
   const deal_amount = Math.max(0, Number(params.deal_amount) || 0);
   const hpp = Math.max(0, Number(params.hpp) || 0);
-  const defaultTransport = params.transport_fee !== undefined ? Number(params.transport_fee) : 20000;
+  // Default transport fee: Rp 20.000 jika ada HPP fisik, Rp 0 jika model langganan berulang (zero-HPP)
+  const defaultTransport = params.transport_fee !== undefined
+    ? Number(params.transport_fee)
+    : (hpp === 0 ? 0 : 20000);
   const closingSpecialistId = params.closing_specialist_id || null;
+  const closingSpecialistName = params.closing_specialist_name || null;
 
   // Step 2: Sisa Profit Kotor
   const gross_profit = Math.max(0, deal_amount - hpp);
 
-  // Step 3: Distribusi Sisa Profit
-  // 10% ke platform
+  // Step 3: Distribusi Developer Fee (10% dari gross_profit)
   const platform_fee_10 = Math.round(gross_profit * 0.10);
+  const developer_fee_10 = platform_fee_10;
 
   // Flat uang transport ke marketing specialist yang mencapai deal (maksimal sisa yang tersedia)
   const remainingAfterFee = Math.max(0, gross_profit - platform_fee_10);
   const marketing_transport = Math.min(defaultTransport, remainingAfterFee);
 
-  // Sisa profit akhir untuk dibagi sesuai porsi modal HPP
+  // Sisa profit akhir untuk dibagi sesuai porsi modal HPP / marketing specialist
   const net_split_profit = Math.max(0, remainingAfterFee - marketing_transport);
 
   // Determine active bearers
@@ -127,7 +193,7 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
           id: 'bearer-marketing-1',
           type: 'marketing',
           specialist_id: closingSpecialistId,
-          name: 'Marketing Specialist',
+          name: closingSpecialistName || 'Marketing Specialist',
           amount: hpp,
           ratio: 100,
         },
@@ -138,7 +204,7 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
           id: 'bearer-marketing-1',
           type: 'marketing',
           specialist_id: closingSpecialistId,
-          name: 'Marketing Specialist',
+          name: closingSpecialistName || 'Marketing Specialist',
           amount: mAmount,
           ratio: hpp > 0 ? (mAmount / hpp) * 100 : 50,
         },
@@ -163,7 +229,7 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
     ? rawBearers.some((b) => b.type === 'marketing' && b.specialist_id === closingSpecialistId)
     : false;
 
-  // First marketing bearer index to receive transport if closing specialist not specified or not in bearers
+  // First marketing bearer index to receive transport / profit share if closing specialist not specifically isolated
   const firstMarketingIndex = rawBearers.findIndex((b) => b.type === 'marketing');
 
   for (let i = 0; i < rawBearers.length; i++) {
@@ -181,6 +247,23 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
       } else {
         final_share = Math.round(net_split_profit * (amount / hpp));
         allocatedShareSum += final_share;
+      }
+    } else if (hpp === 0 && net_split_profit > 0) {
+      // Untuk transaksi zero-HPP (misal langganan digital berulang),
+      // 100% sisa laba bersih dialokasikan ke marketing specialist yang closing deal
+      if (firstMarketingIndex !== -1) {
+        if (b.type === 'marketing') {
+          if (closingSpecialistInBearers) {
+            if (b.specialist_id === closingSpecialistId) {
+              final_share = net_split_profit;
+            }
+          } else if (i === firstMarketingIndex) {
+            final_share = net_split_profit;
+          }
+        }
+      } else if (i === rawBearers.length - 1) {
+        // Fallback jika tidak ada marketing bearer eksplisit
+        final_share = net_split_profit;
       }
     }
 
@@ -240,6 +323,14 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
   const marketing_net_income = marketing_total_payout - reimburse_marketing;
   const platform_net_income = platform_total_payout - reimburse_platform;
 
+  // Reciprocal Developer Fee calculation
+  let specialistIdentifier = closingSpecialistName || closingSpecialistId;
+  if (!specialistIdentifier && closingSpecialistInBearers) {
+    const bearerObj = rawBearers.find((b) => b.type === 'marketing' && b.specialist_id === closingSpecialistId);
+    if (bearerObj?.name) specialistIdentifier = bearerObj.name;
+  }
+  const devFeeDist = getDeveloperFeeDistribution(developer_fee_10, specialistIdentifier);
+
   return {
     deal_amount,
     hpp,
@@ -252,6 +343,11 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
     reimburse_platform,
     gross_profit,
     platform_fee_10,
+    developer_fee_10,
+    developer_fee_vicky: devFeeDist.developer_fee_vicky,
+    developer_fee_natan: devFeeDist.developer_fee_natan,
+    developer_fee_recipient: devFeeDist.developer_fee_recipient,
+    developer_fee_recipient_notes: devFeeDist.developer_fee_recipient_notes,
     marketing_transport,
     net_split_profit,
     marketing_final_share,
@@ -308,6 +404,7 @@ export function calculateVenueSettlement(venue: {
   hpp_bearers?: HppBearer[];
   sales_id?: string | null;
   marketing_id?: string | null;
+  marketing_name?: string | null;
   transport_fee?: number;
   hpp_reimburse_status?: 'unpaid' | 'paid' | 'not_applicable';
   profit_share_status?: 'unpaid' | 'paid' | 'not_applicable';
@@ -320,6 +417,7 @@ export function calculateVenueSettlement(venue: {
     hpp_marketing_amount: venue.hpp_marketing_amount,
     hpp_bearers: venue.hpp_bearers,
     closing_specialist_id: venue.sales_id || venue.marketing_id,
+    closing_specialist_name: venue.marketing_name,
     transport_fee: venue.transport_fee,
   });
 
@@ -426,6 +524,65 @@ export function calculateVenueSettlement(venue: {
     paid_profit_share_marketing,
     total_paid_marketing,
     bearers_settlement,
+  };
+}
+
+export interface MonthlyProfitSharingParams {
+  total_gross_revenue: number;
+  total_hpp_cost: number;
+  server_operating_cost?: number; // Biaya server/cloud bulanan (Supabase, Vercel, Domain, WA Gateway)
+  developer_pool_fee_rate?: number; // Default 0.10 (10%)
+}
+
+export interface MonthlyProfitSharingResult {
+  total_gross_revenue: number;
+  total_hpp_cost: number;
+  gross_profit: number; // total_gross_revenue - total_hpp_cost
+  server_operating_cost: number;
+  net_profit_before_server: number;
+  net_profit_after_server: number; // Max(0, gross_profit - server_operating_cost)
+  developer_fee_pool: number; // 10% dari net_profit_after_server
+  distributable_profit: number; // Sisa laba bersih setelah dev pool
+  vicky_equity_ratio: number; // 51% (Perjanjian Kemitraan Pasal 3)
+  natan_equity_ratio: number; // 49% (Perjanjian Kemitraan Pasal 3)
+  vicky_equity_dividend: number; // 51% dari distributable_profit
+  natan_equity_dividend: number; // 49% dari distributable_profit
+}
+
+export function calculateMonthlyNetProfitWithServerCost(
+  params: MonthlyProfitSharingParams
+): MonthlyProfitSharingResult {
+  const total_gross_revenue = Math.max(0, Number(params.total_gross_revenue) || 0);
+  const total_hpp_cost = Math.max(0, Number(params.total_hpp_cost) || 0);
+  const server_operating_cost = Math.max(0, Number(params.server_operating_cost) || 0);
+  const gross_profit = Math.max(0, total_gross_revenue - total_hpp_cost);
+
+  const net_profit_before_server = gross_profit;
+  const net_profit_after_server = Math.max(0, gross_profit - server_operating_cost);
+
+  const feeRate = params.developer_pool_fee_rate !== undefined ? params.developer_pool_fee_rate : 0.10;
+  const developer_fee_pool = Math.round(net_profit_after_server * feeRate);
+  const distributable_profit = Math.max(0, net_profit_after_server - developer_fee_pool);
+
+  // Porsi Saham: Vicky 51%, Natan 49% sesuai Perjanjian Kemitraan Pasal 3
+  const vicky_equity_ratio = 51;
+  const natan_equity_ratio = 49;
+  const vicky_equity_dividend = Math.round((distributable_profit * vicky_equity_ratio) / 100);
+  const natan_equity_dividend = distributable_profit - vicky_equity_dividend;
+
+  return {
+    total_gross_revenue,
+    total_hpp_cost,
+    gross_profit,
+    server_operating_cost,
+    net_profit_before_server,
+    net_profit_after_server,
+    developer_fee_pool,
+    distributable_profit,
+    vicky_equity_ratio,
+    natan_equity_ratio,
+    vicky_equity_dividend,
+    natan_equity_dividend,
   };
 }
 

@@ -26,6 +26,28 @@ export class InMemoryStore {
       is_active: true,
       created_at: new Date().toISOString(),
     },
+    {
+      id: '00000000-0000-0000-0000-000000000011',
+      name: 'Vicky Galih Pamungkas (Developer, Supply Chain & Specialist)',
+      phone_whatsapp: '628123456781',
+      email: 'vicky@bintangreview.id',
+      access_pin: '1234',
+      commission_type: 'percentage',
+      commission_rate: 20,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000012',
+      name: 'Natan Setyo Agung (Developer, QA, Supply Chain & Specialist)',
+      phone_whatsapp: '628123456782',
+      email: 'natan@bintangreview.id',
+      access_pin: '1234',
+      commission_type: 'percentage',
+      commission_rate: 20,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    },
   ];
 
   private venues: Venue[] = [

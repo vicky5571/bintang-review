@@ -480,6 +480,8 @@ export function AdminVenueModal({
     });
   };
 
+  const currentMarketingSpec = marketingSpecialists.find((m) => m.id === formData.marketing_id);
+
   const profitDist = calculateProfitDistribution({
     deal_amount: formData.deal_amount,
     hpp: formData.hpp,
@@ -488,6 +490,7 @@ export function AdminVenueModal({
     hpp_marketing_amount: formData.hpp_marketing_amount,
     hpp_bearers: formData.hpp_bearers,
     closing_specialist_id: formData.marketing_id,
+    closing_specialist_name: currentMarketingSpec?.name,
     transport_fee: formData.transport_fee,
   });
 
@@ -1067,9 +1070,21 @@ export function AdminVenueModal({
                   <p className="font-medium">Platform Total: <strong className="text-slate-800">Rp {profitDist.reimburse_platform.toLocaleString('id-ID')}</strong></p>
                 </div>
                 <div className="p-2 bg-white rounded-xl border border-slate-100">
-                  <p className="text-[10px] text-slate-400 uppercase font-semibold">2. Potongan Profit</p>
-                  <p className="mt-0.5 font-medium">Fee Platform (10%): <strong className="text-slate-800">Rp {profitDist.platform_fee_10.toLocaleString('id-ID')}</strong></p>
+                  <p className="text-[10px] text-slate-400 uppercase font-semibold">2. Developer Fee & Transport</p>
+                  <p className="mt-0.5 font-medium">Developer Fee (10%): <strong className="text-slate-800">Rp {profitDist.developer_fee_10.toLocaleString('id-ID')}</strong></p>
                   <p className="font-medium">Transport Closing: <strong className="text-slate-800">Rp {profitDist.marketing_transport.toLocaleString('id-ID')}</strong></p>
+                  <div className="mt-1 pt-1 border-t border-slate-100 text-[10px] font-medium leading-tight">
+                    <span className="text-indigo-600 font-bold">Alokasi Dev Fee: </span>
+                    {profitDist.developer_fee_recipient === 'natan' && (
+                      <span className="text-emerald-700 font-bold">100% Hak Natan (Deal Vicky)</span>
+                    )}
+                    {profitDist.developer_fee_recipient === 'vicky' && (
+                      <span className="text-emerald-700 font-bold">100% Hak Vicky (Deal Natan)</span>
+                    )}
+                    {profitDist.developer_fee_recipient === 'split' && (
+                      <span className="text-blue-700 font-bold">Bagi Rata 50:50 (Rp {profitDist.developer_fee_vicky.toLocaleString('id-ID')} / mitra)</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1128,13 +1143,13 @@ export function AdminVenueModal({
 
                 <div className="p-2.5 rounded-xl bg-cyan-50/80 border border-cyan-200 text-cyan-900">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-800 flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-cyan-600" /> Payout Platform Total
+                    <Building2 className="w-3 h-3 text-cyan-600" /> Developer Fee / Pool
                   </p>
                   <p className="text-base font-black text-slate-900 mt-0.5">
-                    Rp {profitDist.platform_total_payout.toLocaleString('id-ID')}
+                    Rp {profitDist.developer_fee_10.toLocaleString('id-ID')}
                   </p>
                   <p className="text-[9px] text-slate-500 mt-0.5">
-                    Reimb {profitDist.reimburse_platform > 0 ? `${(profitDist.reimburse_platform / 1000)}k + ` : ''}Fee {(profitDist.platform_fee_10 / 1000)}k + Bagi {(profitDist.platform_final_share / 1000)}k
+                    Vicky: Rp {profitDist.developer_fee_vicky.toLocaleString('id-ID')} | Natan: Rp {profitDist.developer_fee_natan.toLocaleString('id-ID')}
                   </p>
                 </div>
               </div>
