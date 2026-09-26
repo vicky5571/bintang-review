@@ -44,7 +44,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
+        source: '/((?!_next/static|_next/image|favicon.ico).*)',
         headers: securityHeaders,
       },
     ];
