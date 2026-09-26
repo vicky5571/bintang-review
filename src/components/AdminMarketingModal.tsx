@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { MarketingSpecialist } from '@/lib/types';
-import { X, UserPlus, Percent, DollarSign, Phone, Mail, KeyRound, Info } from 'lucide-react';
-import { CurrencyInput } from '@/components/CurrencyInput';
+import { X, UserPlus, Phone, Mail, KeyRound, Info, ShieldCheck } from 'lucide-react';
 
 interface AdminMarketingModalProps {
   isOpen: boolean;
@@ -144,81 +143,44 @@ export function AdminMarketingModal({ isOpen, onClose, onSave }: AdminMarketingM
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Skema Komisi Marketing</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, commission_type: 'percentage', commission_rate: 20 })}
-                  className={`p-2.5 rounded-xl border text-left flex flex-col transition ${
-                    formData.commission_type === 'percentage'
-                      ? 'border-[#84cc16] bg-lime-50/50 text-slate-900 ring-1 ring-[#84cc16]'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="text-xs font-bold flex items-center gap-1.5">
-                    <Percent className="w-3.5 h-3.5 text-[#84cc16]" /> Persentase (%)
-                  </span>
-                  <span className="text-[11px] text-slate-500 mt-0.5">Dari total nilai deal</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, commission_type: 'fixed_amount', commission_rate: 100000 })}
-                  className={`p-2.5 rounded-xl border text-left flex flex-col transition ${
-                    formData.commission_type === 'fixed_amount'
-                      ? 'border-[#06b6d4] bg-cyan-50/50 text-slate-900 ring-1 ring-[#06b6d4]'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="text-xs font-bold flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-[#06b6d4]" /> Nominal Tetap
-                  </span>
-                  <span className="text-[11px] text-slate-500 mt-0.5">Rp per venue kafe</span>
-                </button>
-              </div>
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-700">Skema Bagi Hasil Kemitraan</label>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                Sesuai PKS (Pasal 4)
+              </span>
             </div>
 
-            {formData.commission_type === 'percentage' ? (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700">
-                  Besaran Komisi (%) <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative mt-1">
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={formData.commission_rate}
-                    onChange={(e) => setFormData({ ...formData, commission_rate: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs font-bold"
-                    placeholder="20"
-                  />
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-50 to-emerald-50/30 border border-slate-200/80 space-y-2.5 text-xs text-slate-600">
+              <p className="text-[11px] leading-relaxed text-slate-600">
+                Marketing Specialist beroperasi di bawah <strong>Perjanjian Kemitraan (Pasal 4)</strong>. Hak finansial dihitung otomatis oleh sistem pada setiap transaksi closing:
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="p-2 bg-white rounded-xl border border-slate-200/60 shadow-xs">
+                  <span className="block font-bold text-slate-800">1. Reimburse HPP</span>
+                  <span className="text-[10px] text-slate-500">100% modal akrilik/NFC yang ditalangi</span>
                 </div>
-                <div className="flex items-start gap-1.5 text-[11px] text-slate-500 mt-1.5">
-                  <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                  <span>
-                    Komisi {formData.commission_rate}% dari paket Rp 599.000 = Rp {Math.round((599000 * formData.commission_rate) / 100).toLocaleString('id-ID')}
-                  </span>
+                <div className="p-2 bg-white rounded-xl border border-slate-200/60 shadow-xs">
+                  <span className="block font-bold text-slate-800">2. Uang Transport</span>
+                  <span className="text-[10px] text-slate-500">Flat Rp 20.000 / venue closing</span>
+                </div>
+                <div className="p-2 bg-white rounded-xl border border-slate-200/60 shadow-xs">
+                  <span className="block font-bold text-slate-800">3. Developer Fee (10%)</span>
+                  <span className="text-[10px] text-slate-500">Hak founder yang tidak closing (Vicky/Natan)</span>
+                </div>
+                <div className="p-2 bg-white rounded-xl border border-slate-200/60 shadow-xs">
+                  <span className="block font-bold text-slate-800">4. Bagi Sisa Laba</span>
+                  <span className="text-[10px] text-slate-500">Proporsional sesuai modal HPP</span>
                 </div>
               </div>
-            ) : (
-              <div>
-                <CurrencyInput
-                  label="Nominal Komisi Tetap per Venue (Rp)"
-                  required
-                  value={formData.commission_rate}
-                  onChange={(val) => setFormData({ ...formData, commission_rate: val })}
-                  placeholder="100.000"
-                  presets={[50000, 100000, 150000, 200000]}
-                  showTerbilang
-                  colorScheme="cyan"
-                  helpText="Komisi tetap yang diterima Marketing Specialist untuk setiap 1 venue closing."
-                />
+
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 pt-1 border-t border-slate-200/60">
+                <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>Penanggung modal HPP ditentukan saat Super Admin mendaftarkan venue.</span>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">

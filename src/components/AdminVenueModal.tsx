@@ -1031,7 +1031,7 @@ export function AdminVenueModal({
                   <option value="">-- Tanpa Marketing Specialist --</option>
                   {marketingSpecialists.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.name} ({a.commission_type === 'percentage' ? `${a.commission_rate}%` : `Rp ${a.commission_rate.toLocaleString('id-ID')}`})
+                      {a.name} (Marketing Specialist)
                     </option>
                   ))}
                 </select>
@@ -1143,7 +1143,7 @@ export function AdminVenueModal({
 
                 <div className="p-2.5 rounded-xl bg-cyan-50/80 border border-cyan-200 text-cyan-900">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-800 flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-cyan-600" /> Developer Fee / Pool
+                    <UserCheck className="w-3 h-3 text-cyan-600" /> Developer Fee (Founder Non-Closer)
                   </p>
                   <p className="text-base font-black text-slate-900 mt-0.5">
                     Rp {profitDist.developer_fee_10.toLocaleString('id-ID')}
