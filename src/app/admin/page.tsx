@@ -289,7 +289,7 @@ export default function AdminPage() {
             <p className="text-xs text-slate-500">
               {isSuperAdmin
                 ? 'Developer & Agency Management Console'
-                : `Halo, ${currentUser?.name || 'Partner'} • Portal Mitra Klien Kafe`}
+                : `Halo, ${currentUser?.name || 'Marketing Specialist'} • Portal Marketing Specialist`}
             </p>
           </div>
         </div>

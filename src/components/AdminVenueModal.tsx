@@ -1082,7 +1082,7 @@ export function AdminVenueModal({
                       <span className="text-emerald-700 font-bold">100% Hak Vicky (Deal Natan)</span>
                     )}
                     {profitDist.developer_fee_recipient === 'split' && (
-                      <span className="text-blue-700 font-bold">Bagi Rata 50:50 (Rp {profitDist.developer_fee_vicky.toLocaleString('id-ID')} / mitra)</span>
+                      <span className="text-blue-700 font-bold">Bagi Rata 50:50 (Rp {profitDist.developer_fee_vicky.toLocaleString('id-ID')} / founder)</span>
                     )}
                   </div>
                 </div>

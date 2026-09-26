@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   Calculator,
   ShieldCheck,
-  FileText,
   DollarSign,
   Car,
   UserCheck,
@@ -22,9 +21,20 @@ import {
   Users,
   Store,
   Layers,
-  ChevronRight,
+  Plus,
+  Trash2,
+  AlertCircle,
+  Equal,
 } from 'lucide-react';
 import { AdminLoginModal } from '@/components/AdminLoginModal';
+
+interface SimBearer {
+  id: string;
+  name: string;
+  amount: number;
+  type: 'marketing' | 'platform';
+  specialist_id?: string | null;
+}
 
 export default function AdminFormulasPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -35,8 +45,26 @@ export default function AdminFormulasPage() {
   const [simDealAmount, setSimDealAmount] = useState<number>(599000);
   const [simHpp, setSimHpp] = useState<number>(150000);
   const [simCloser, setSimCloser] = useState<'vicky' | 'natan' | 'external'>('vicky');
-  const [simHppPayer, setSimHppPayer] = useState<'marketing' | 'platform' | 'split'>('marketing');
+  const [simHppMode, setSimHppMode] = useState<'single_marketing' | 'single_platform' | 'custom_split'>('custom_split');
   const [simTransport, setSimTransport] = useState<number>(20000);
+
+  // Multi-Bearer HPP State (Custom nominal rupiah oleh beberapa Marketing Specialist)
+  const [simBearers, setSimBearers] = useState<SimBearer[]>([
+    {
+      id: 'bearer-1',
+      name: 'Marketing Specialist 1 (Rian)',
+      amount: 90000,
+      type: 'marketing',
+      specialist_id: 'ms-1',
+    },
+    {
+      id: 'bearer-2',
+      name: 'Marketing Specialist 2 (Citra)',
+      amount: 60000,
+      type: 'marketing',
+      specialist_id: 'ms-2',
+    },
+  ]);
 
   // Simulator State: Monthly Equity Dividend
   const [simMonthlyRevenue, setSimMonthlyRevenue] = useState<number>(15000000);
@@ -78,6 +106,59 @@ export default function AdminFormulasPage() {
     checkAuth();
   }, []);
 
+  // Multi-Bearer Management Handlers
+  const handleAddBearer = () => {
+    const nextIdx = simBearers.length + 1;
+    setSimBearers([
+      ...simBearers,
+      {
+        id: `bearer-${Date.now()}`,
+        name: `Marketing Specialist ${nextIdx}`,
+        amount: 0,
+        type: 'marketing',
+        specialist_id: `ms-${nextIdx}`,
+      },
+    ]);
+  };
+
+  const handleRemoveBearer = (index: number) => {
+    if (simBearers.length <= 1) return;
+    setSimBearers(simBearers.filter((_, idx) => idx !== index));
+  };
+
+  const handleBearerAmountChange = (index: number, val: number) => {
+    const updated = [...simBearers];
+    updated[index].amount = Math.max(0, val);
+    setSimBearers(updated);
+  };
+
+  const handleBearerNameChange = (index: number, name: string) => {
+    const updated = [...simBearers];
+    updated[index].name = name;
+    setSimBearers(updated);
+  };
+
+  const handleBearerTypeChange = (index: number, type: 'marketing' | 'platform') => {
+    const updated = [...simBearers];
+    updated[index].type = type;
+    if (type === 'platform') {
+      updated[index].name = 'Kas Platform / Agency';
+      updated[index].specialist_id = null;
+    }
+    setSimBearers(updated);
+  };
+
+  const handleEvenSplit = () => {
+    if (simBearers.length === 0 || simHpp === 0) return;
+    const splitAmount = Math.floor(simHpp / simBearers.length);
+    const remainder = simHpp - splitAmount * simBearers.length;
+    const updated = simBearers.map((b, idx) => ({
+      ...b,
+      amount: idx === simBearers.length - 1 ? splitAmount + remainder : splitAmount,
+    }));
+    setSimBearers(updated);
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-medium text-sm">
@@ -107,13 +188,27 @@ export default function AdminFormulasPage() {
       ? 'Vicky Galih Pamungkas'
       : simCloser === 'natan'
       ? 'Natan Setyo Agung'
-      : 'Budi Santoso (Agen Eksternal)';
+      : 'Agen Eksternal';
+
+  const totalBearersAllocated = simBearers.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+  const bearerDifference = simHpp - totalBearersAllocated;
 
   const simResult = calculateProfitDistribution({
     deal_amount: simDealAmount,
     hpp: simHpp,
-    hpp_payer: simHppPayer,
-    hpp_marketing_ratio: simHppPayer === 'marketing' ? 100 : simHppPayer === 'platform' ? 0 : 50,
+    hpp_payer: simHppMode === 'single_platform' ? 'platform' : simHppMode === 'single_marketing' ? 'marketing' : 'split',
+    hpp_bearers:
+      simHppMode === 'custom_split'
+        ? simBearers.map((b) => ({
+            id: b.id,
+            name: b.name,
+            amount: b.amount,
+            ratio: simHpp > 0 ? (b.amount / simHpp) * 100 : 0,
+            type: b.type,
+            specialist_id: b.specialist_id,
+          }))
+        : undefined,
+    closing_specialist_id: simCloser === 'vicky' ? 'vicky-id' : simCloser === 'natan' ? 'natan-id' : 'external-id',
     closing_specialist_name: closerName,
     transport_fee: simTransport,
   });
@@ -144,7 +239,7 @@ export default function AdminFormulasPage() {
             </div>
             <div>
               <h1 className="text-sm sm:text-base font-black tracking-tight text-slate-900 flex items-center gap-2">
-                Audit Rumus Keuangan Kemitraan
+                Audit Rumus Keuangan Bintang Review
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   Verified PKS
                 </span>
@@ -179,7 +274,7 @@ export default function AdminFormulasPage() {
                 Halaman ini merangkum seluruh rumus matematika keuangan yang diimplementasikan pada kode sumber repositori
                 (<code className="text-amber-300">src/lib/profitSharing.ts</code>) dan memverifikasi kepatuhannya
                 terhadap klausul tertulis antara <strong>Vicky Galih Pamungkas (51%)</strong> dan{' '}
-                <strong>Natan Setyo Agung (49%)</strong>.
+                <strong>Natan Setyo Agung (49%)</strong> selaku Para Pendiri (Co-Founders).
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 shrink-0 text-center">
@@ -252,12 +347,12 @@ export default function AdminFormulasPage() {
                 </code>
               </h4>
               <p className="text-xs text-slate-600 leading-relaxed">
-                <strong>Tidak masuk kas sistem</strong>, melainkan dialokasikan ke mitra yang <strong>tidak closing</strong> di lapangan:
+                <strong>Tidak masuk kas sistem</strong>, melainkan dialokasikan ke founder yang <strong>tidak closing</strong> di lapangan:
               </p>
               <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside bg-white p-2.5 rounded-xl border border-cyan-100">
                 <li>Deal ditutup oleh <strong>Vicky</strong> $\rightarrow$ <strong>100% hak Natan</strong></li>
                 <li>Deal ditutup oleh <strong>Natan</strong> $\rightarrow$ <strong>100% hak Vicky</strong></li>
-                <li>Deal melalui <strong>Agen Luar</strong> $\rightarrow$ <strong>50:50 antara Vicky & Natan</strong></li>
+                <li>Deal melalui <strong>Agen Eksternal</strong> $\rightarrow$ <strong>50:50 antara Vicky & Natan</strong></li>
               </ul>
             </div>
 
@@ -271,7 +366,7 @@ export default function AdminFormulasPage() {
                 </code>
               </h4>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Diberikan kepada tenaga pemasar yang menutup transaksi (<strong>Closer</strong>) jika ada pengantaran unit fisik
+                Diberikan kepada <strong>Marketing Specialist</strong> yang menutup transaksi (<strong>Closer</strong>) jika ada pengantaran unit fisik
                 (HPP &gt; 0). Jika paket perpanjangan langganan (HPP = 0), transport = Rp 0.
               </p>
               <div className="p-2.5 bg-white rounded-xl border border-amber-100 text-xs font-mono text-slate-700">
@@ -279,22 +374,22 @@ export default function AdminFormulasPage() {
               </div>
             </div>
 
-            {/* Step 5: Net Split Profit */}
+            {/* Step 5: Net Split Profit & Multi-Bearer */}
             <div className="p-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/30 space-y-2">
               <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Langkah 5 & 6</span>
               <h4 className="text-sm font-bold text-slate-900 flex items-center justify-between">
-                Sisa Laba Bersih & Reimburse HPP
+                Split HPP Custom & Bagi Sisa Laba
                 <code className="text-xs font-mono text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                  Proporsional Modal
+                  Nominal Rp Dinamis
                 </code>
               </h4>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Modal HPP dikembalikan 100% (<strong>Reimburse</strong>). Sisa laba bersih (<strong>Net Split Profit</strong>)
-                setelah Developer Fee dan Transport dibagi proporsional sesuai rasio siapa yang menalangi modal HPP.
+                Penanggungan modal HPP <strong>tidaklah fix 50:50</strong>, melainkan ditentukan secara <strong>custom dalam bentuk Rupiah oleh beberapa Marketing Specialist</strong> (maupun bersama Kas Platform).
               </p>
-              <div className="p-2.5 bg-white rounded-xl border border-emerald-100 text-xs font-mono text-slate-700">
-                Net Split Profit = Gross Profit - Dev Fee 10% - Transport 20k
-              </div>
+              <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside bg-white p-2.5 rounded-xl border border-emerald-100">
+                <li><strong>Reimburse 100%</strong>: Modal fisik yang ditalangi dikembalikan utuh ke masing-masing Marketing Specialist.</li>
+                <li><strong>Porsi Sisa Laba (Final Share)</strong>: Dibagi proporsional sesuai rasio nominal Rupiah yang disetorkan terhadap total HPP.</li>
+              </ul>
             </div>
           </div>
         </section>
@@ -308,10 +403,10 @@ export default function AdminFormulasPage() {
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-black text-slate-900">
-                  Simulator Interaktif Transaksi Venue (Live Code Engine)
+                  Simulator Interaktif Transaksi Venue (Multi-Bearer HPP)
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Simulasikan angka berapapun untuk memverifikasi kalkulasi otomatis <code className="text-indigo-600 font-mono">calculateProfitDistribution()</code>
+                  Simulasikan pembagian modal kustom Rupiah oleh beberapa Marketing Specialist menggunakan mesin kode <code className="text-indigo-600 font-mono">calculateProfitDistribution()</code>
                 </p>
               </div>
             </div>
@@ -365,7 +460,10 @@ export default function AdminFormulasPage() {
                     type="number"
                     step="1000"
                     value={simHpp}
-                    onChange={(e) => setSimHpp(Number(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const newHpp = Number(e.target.value) || 0;
+                      setSimHpp(newHpp);
+                    }}
                     className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   />
                 </div>
@@ -421,54 +519,167 @@ export default function AdminFormulasPage() {
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    Agen Luar
+                    Agen Eksternal
                     <span className="block text-[9px] font-normal text-slate-500">Dev Fee 50:50</span>
                   </button>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  4. Pihak Penanggung Modal HPP
+              {/* Mode Penanggung HPP */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-slate-700">
+                  4. Skema Penanggung Modal HPP
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setSimHppPayer('marketing')}
+                    onClick={() => setSimHppMode('custom_split')}
                     className={`p-2 rounded-xl border text-xs font-bold transition text-left ${
-                      simHppPayer === 'marketing'
+                      simHppMode === 'custom_split'
                         ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-600'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    100% Mitra
-                    <span className="block text-[9px] font-normal text-slate-500">Laba bersih ke Mitra</span>
+                    Custom Split Rp
+                    <span className="block text-[9px] font-normal text-slate-500">Beberapa Specialist</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSimHppPayer('platform')}
+                    onClick={() => setSimHppMode('single_marketing')}
                     className={`p-2 rounded-xl border text-xs font-bold transition text-left ${
-                      simHppPayer === 'platform'
+                      simHppMode === 'single_marketing'
                         ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-600'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    100% Platform
-                    <span className="block text-[9px] font-normal text-slate-500">Laba bersih ke Kas</span>
+                    100% Specialist
+                    <span className="block text-[9px] font-normal text-slate-500">Tunggal (Closer)</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSimHppPayer('split')}
+                    onClick={() => setSimHppMode('single_platform')}
                     className={`p-2 rounded-xl border text-xs font-bold transition text-left ${
-                      simHppPayer === 'split'
+                      simHppMode === 'single_platform'
                         ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-600'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    50:50 Split
-                    <span className="block text-[9px] font-normal text-slate-500">Bagi 50% masing2</span>
+                    100% Kas Platform
+                    <span className="block text-[9px] font-normal text-slate-500">Kas Agency</span>
                   </button>
                 </div>
+
+                {/* MULTI-BEARER CUSTOM SPLIT RUPIAH EDITOR */}
+                {simHppMode === 'custom_split' && (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 mt-2 animate-in fade-in">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5 text-indigo-600" /> Rincian Modal per Specialist (Rp):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleEvenSplit}
+                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200 flex items-center gap-1"
+                        title="Bagi rata nominal HPP secara otomatis"
+                      >
+                        <Equal className="w-3 h-3" /> Bagi Rata Otomatis
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {simBearers.map((b, idx) => {
+                        const ratio = simHpp > 0 ? ((b.amount / simHpp) * 100).toFixed(1) : '0.0';
+                        return (
+                          <div
+                            key={b.id || idx}
+                            className="p-2.5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <input
+                                type="text"
+                                value={b.name}
+                                onChange={(e) => handleBearerNameChange(idx, e.target.value)}
+                                className="text-xs font-bold text-slate-800 bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-500 focus:outline-none w-3/5"
+                                placeholder={`Marketing Specialist ${idx + 1}`}
+                              />
+                              <div className="flex items-center gap-1">
+                                <select
+                                  value={b.type}
+                                  onChange={(e) => handleBearerTypeChange(idx, e.target.value as any)}
+                                  className="text-[10px] font-semibold bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-0.5"
+                                >
+                                  <option value="marketing">Specialist</option>
+                                  <option value="platform">Kas Platform</option>
+                                </select>
+                                {simBearers.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveBearer(idx)}
+                                    className="text-slate-400 hover:text-rose-500 p-0.5 transition"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="relative flex-1">
+                                <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-[11px] font-bold text-slate-400">
+                                  Rp
+                                </span>
+                                <input
+                                  type="number"
+                                  step="5000"
+                                  value={b.amount}
+                                  onChange={(e) => handleBearerAmountChange(idx, Number(e.target.value) || 0)}
+                                  className="w-full pl-8 pr-2 py-1 text-xs font-bold text-slate-900 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                                />
+                              </div>
+                              <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-200 shrink-0">
+                                {ratio}%
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddBearer}
+                      className="w-full py-1.5 bg-white hover:bg-slate-100 text-indigo-600 text-xs font-bold rounded-xl border border-dashed border-indigo-300 flex items-center justify-center gap-1 transition"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Tambah Marketing Specialist
+                    </button>
+
+                    {/* Balance Status Callout */}
+                    <div
+                      className={`p-2 rounded-xl text-[10px] font-semibold flex items-center justify-between border ${
+                        bearerDifference === 0
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-amber-50 text-amber-800 border-amber-200'
+                      }`}
+                    >
+                      <span>
+                        Teralokasi: <strong>Rp {totalBearersAllocated.toLocaleString('id-ID')}</strong> / Rp{' '}
+                        {simHpp.toLocaleString('id-ID')}
+                      </span>
+                      <span>
+                        {bearerDifference === 0 ? (
+                          <span className="flex items-center gap-1 text-emerald-700 font-bold">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> 100% Pas
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-amber-700 font-bold">
+                            <AlertCircle className="w-3 h-3 text-amber-600" /> Selisih Rp{' '}
+                            {Math.abs(bearerDifference).toLocaleString('id-ID')}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -512,7 +723,7 @@ export default function AdminFormulasPage() {
 
                 <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
                   <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-700 space-y-1">
-                    <p className="text-slate-400 text-[10px] font-bold uppercase">Hak Mitra Penjual (Closer)</p>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase">Hak Marketing Specialist (Total)</p>
                     <p className="text-base font-black text-emerald-400">
                       Rp {simResult.marketing_total_payout.toLocaleString('id-ID')}
                     </p>
@@ -524,7 +735,7 @@ export default function AdminFormulasPage() {
                   </div>
 
                   <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-700 space-y-1">
-                    <p className="text-slate-400 text-[10px] font-bold uppercase">Hak Developer Fee (Non-Closer)</p>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase">Hak Developer Fee (Founder)</p>
                     <p className="text-base font-black text-cyan-400">
                       Rp {simResult.developer_fee_10.toLocaleString('id-ID')}
                     </p>
@@ -534,6 +745,45 @@ export default function AdminFormulasPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* MULTI-BEARER BREAKDOWN TABLE IN RESULT */}
+                {simHppMode === 'custom_split' && simResult.bearers_summary && simResult.bearers_summary.length > 0 && (
+                  <div className="space-y-1.5 pt-2 border-t border-slate-700/80">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                      Rincian Payout per Penanggung Modal ({simResult.bearers_summary.length} Pihak):
+                    </p>
+                    <div className="space-y-1.5">
+                      {simResult.bearers_summary.map((item, idx) => (
+                        <div
+                          key={item.bearer.id || idx}
+                          className="p-2 bg-slate-900 rounded-lg border border-slate-700/80 flex items-center justify-between text-[11px]"
+                        >
+                          <div>
+                            <p className="font-bold text-white flex items-center gap-1.5">
+                              {item.bearer.name}
+                              <span className="text-[9px] font-normal text-slate-400">
+                                (Modal Rp {item.amount.toLocaleString('id-ID')} • {item.ratio.toFixed(1)}%)
+                              </span>
+                            </p>
+                            <p className="text-[9px] text-slate-400 mt-0.5">
+                              Reimb: Rp {item.reimburse.toLocaleString('id-ID')}
+                              {item.transport > 0 ? ` + Trans: Rp ${item.transport.toLocaleString('id-ID')}` : ''}
+                              {item.final_share > 0 ? ` + Share: Rp ${item.final_share.toLocaleString('id-ID')}` : ''}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-black text-emerald-400 text-xs">
+                              Rp {item.total_payout.toLocaleString('id-ID')}
+                            </p>
+                            <p className="text-[9px] font-semibold text-cyan-300">
+                              Laba Murni: +Rp {item.net_income.toLocaleString('id-ID')}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Verification Callout */}
@@ -675,8 +925,8 @@ export default function AdminFormulasPage() {
 
           <div className="text-xs text-slate-600 leading-relaxed space-y-2">
             <p>
-              Sesuai klausul hukum <strong>Pasal 7 Ayat 3 Butir b</strong>, apabila mitra atau mantan mitra berhenti dari kemitraan aktif,
-              mitra tersebut <strong>tetap berhak penuh dan berkelanjutan menerima bagi hasil</strong> atas seluruh klien/venue yang
+              Sesuai klausul hukum <strong>Pasal 7 Ayat 3 Butir b</strong>, apabila Marketing Specialist atau mantan Marketing Specialist berhenti dari tugas aktif,
+              yang bersangkutan <strong>tetap berhak penuh dan berkelanjutan menerima bagi hasil</strong> atas seluruh klien/venue yang
               pernah dibawanya selama masa aktif:
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -684,7 +934,7 @@ export default function AdminFormulasPage() {
                 <span className="font-bold text-slate-800">Paket Langganan Retainer Bulanan:</span>
                 <p className="text-[11px] text-slate-500 mt-1">
                   Untuk perpanjangan retainer (misal Rp 49.000/bulan), tidak ada modal fisik (HPP = 0) dan tidak ada uang transport.
-                  Developer Fee 10% tetap berlaku, dan 90% sisanya dibagikan ke mitra penanggung jawab klien.
+                  Developer Fee 10% tetap berlaku, dan 90% sisanya dibagikan ke Marketing Specialist penanggung jawab klien.
                 </p>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
