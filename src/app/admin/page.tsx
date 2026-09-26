@@ -863,7 +863,7 @@ export default function AdminPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-[#84cc16]" />
-                <h2 className="font-bold text-slate-800 text-sm sm:text-base">Kinerja Marketing Specialist & Bagi Hasil Kemitraan</h2>
+                <h2 className="font-bold text-slate-800 text-sm sm:text-base">Kinerja Marketing Specialist</h2>
               </div>
               <button
                 onClick={() => setIsMarketingModalOpen(true)}
@@ -877,12 +877,7 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {marketingSpecialists.map((agent) => (
                 <div key={agent.id} className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-2 hover:border-emerald-200 transition">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-slate-900">{agent.name}</h3>
-                    <span className="text-[11px] bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-800 border border-emerald-200/80 px-2.5 py-0.5 rounded-full font-semibold">
-                      Bagi Hasil PKS (Pasal 4)
-                    </span>
-                  </div>
+                  <h3 className="font-bold text-slate-900">{agent.name}</h3>
                   <div className="text-xs text-slate-500">Venue Terjual: {agent.total_venues} kafe</div>
                   <div className="text-xs text-slate-500">
                     Total Deal: Rp {agent.total_revenue.toLocaleString('id-ID')}

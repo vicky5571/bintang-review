@@ -570,7 +570,7 @@ export function AdminVenueModal({
               }`}
               placeholder="https://search.google.com/local/writereview?placeid=... (Kosongkan jika stok belum laku)"
             />
-            <div className="flex items-start gap-1.5 text-[10px] text-slate-500 mt-1.5">
+            <div className="flex items-start gap-1.5 text-[10px] text-slate-500 mt-1.5 mb-3">
               <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
               <p>
                 <strong>Aktivasi oleh Marketing / Admin:</strong> Masukkan URL Google Review klien di sini untuk mengaktifkan stand ini. Saat membuat stok fisik baru, kolom ini dapat dikosongkan terlebih dahulu dan diaktifkan saat unit terjual.
