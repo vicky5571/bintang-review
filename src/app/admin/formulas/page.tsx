@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { AuthSession } from '@/lib/types';
+import { AuthSession, MarketingSpecialistSummary } from '@/lib/types';
 import { calculateProfitDistribution, calculateMonthlyNetProfitWithServerCost } from '@/lib/profitSharing';
 import {
   ArrowLeft,
@@ -36,33 +36,84 @@ interface SimBearer {
   specialist_id?: string | null;
 }
 
+const DEFAULT_SPECIALISTS: MarketingSpecialistSummary[] = [
+  {
+    id: 'specialist-budi-123',
+    name: 'Budi Santoso (Marketing Specialist)',
+    phone_whatsapp: '081234567890',
+    email: 'budi@gmail.com',
+    access_pin: '1234',
+    commission_type: 'percentage',
+    commission_rate: 20,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    total_venues: 0,
+    total_revenue: 0,
+    earned_commission: 0,
+  },
+  {
+    id: 'founder-vicky-dev',
+    name: 'Vicky Galih Pamungkas (Co-Founder & Specialist)',
+    phone_whatsapp: '081299990001',
+    email: 'vicky@bintangreview.com',
+    access_pin: '1234',
+    commission_type: 'percentage',
+    commission_rate: 20,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    total_venues: 0,
+    total_revenue: 0,
+    earned_commission: 0,
+  },
+  {
+    id: 'founder-natan-dev',
+    name: 'Natan Setyo Agung (Co-Founder & Specialist)',
+    phone_whatsapp: '081299990002',
+    email: 'natan@bintangreview.com',
+    access_pin: '1234',
+    commission_type: 'percentage',
+    commission_rate: 20,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    total_venues: 0,
+    total_revenue: 0,
+    earned_commission: 0,
+  },
+];
+
 export default function AdminFormulasPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthSession | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // Marketing Specialists from DB / API
+  const [marketingSpecialists, setMarketingSpecialists] = useState<MarketingSpecialistSummary[]>(DEFAULT_SPECIALISTS);
+  const [isLoadingSpecialists, setIsLoadingSpecialists] = useState(false);
+  const [simSingleSpecialistId, setSimSingleSpecialistId] = useState<string>('founder-vicky-dev');
+  const [simExternalSpecialistId, setSimExternalSpecialistId] = useState<string>('specialist-budi-123');
+
   // Simulator State: Per-Venue Deal
   const [simDealAmount, setSimDealAmount] = useState<number>(599000);
   const [simHpp, setSimHpp] = useState<number>(150000);
   const [simCloser, setSimCloser] = useState<'vicky' | 'natan' | 'external'>('vicky');
-  const [simHppMode, setSimHppMode] = useState<'single_marketing' | 'single_platform' | 'custom_split'>('custom_split');
+  const [simHppMode, setSimHppMode] = useState<'single_marketing' | 'single_platform' | 'custom_split'>('single_marketing');
   const [simTransport, setSimTransport] = useState<number>(20000);
 
-  // Multi-Bearer HPP State (Custom nominal rupiah oleh beberapa Marketing Specialist)
+  // Multi-Bearer HPP State (Custom nominal rupiah dari tabel Marketing Specialist)
   const [simBearers, setSimBearers] = useState<SimBearer[]>([
     {
       id: 'bearer-1',
-      name: 'Marketing Specialist 1 (Rian)',
+      name: 'Vicky Galih Pamungkas (Co-Founder & Specialist)',
       amount: 90000,
       type: 'marketing',
-      specialist_id: 'ms-1',
+      specialist_id: 'founder-vicky-dev',
     },
     {
       id: 'bearer-2',
-      name: 'Marketing Specialist 2 (Citra)',
+      name: 'Natan Setyo Agung (Co-Founder & Specialist)',
       amount: 60000,
       type: 'marketing',
-      specialist_id: 'ms-2',
+      specialist_id: 'founder-natan-dev',
     },
   ]);
 
@@ -70,6 +121,33 @@ export default function AdminFormulasPage() {
   const [simMonthlyRevenue, setSimMonthlyRevenue] = useState<number>(15000000);
   const [simMonthlyHpp, setSimMonthlyHpp] = useState<number>(3750000);
   const [simServerCost, setSimServerCost] = useState<number>(650000);
+
+  const fetchSpecialists = async () => {
+    setIsLoadingSpecialists(true);
+    try {
+      const res = await fetch('/api/admin/marketing-specialists');
+      if (res.ok) {
+        const data = await res.json();
+        const list: MarketingSpecialistSummary[] = data.marketingSpecialists || [];
+        if (list.length > 0) {
+          setMarketingSpecialists(list);
+          // Sync existing bearers if any specialist_id matches
+          setSimBearers((prev) =>
+            prev.map((b) => {
+              if (b.type === 'platform') return b;
+              const matched = list.find((m) => m.id === b.specialist_id);
+              if (matched) return { ...b, name: matched.name };
+              return b;
+            })
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Gagal memuat tabel marketing specialist:', err);
+    } finally {
+      setIsLoadingSpecialists(false);
+    }
+  };
 
   const checkAuth = async () => {
     try {
@@ -82,6 +160,7 @@ export default function AdminFormulasPage() {
         }
         setIsAuthenticated(true);
         setCurrentUser(data.user);
+        fetchSpecialists();
         return;
       }
 
@@ -90,6 +169,7 @@ export default function AdminFormulasPage() {
       if (dataAdmin.authenticated) {
         setIsAuthenticated(true);
         setCurrentUser(dataAdmin.user || { role: 'super_admin', name: 'Super Admin', authenticated: true });
+        fetchSpecialists();
         return;
       }
 
@@ -106,17 +186,21 @@ export default function AdminFormulasPage() {
     checkAuth();
   }, []);
 
-  // Multi-Bearer Management Handlers
+  // Multi-Bearer Management Handlers (Mengambil dari Tabel Marketing Specialist)
   const handleAddBearer = () => {
-    const nextIdx = simBearers.length + 1;
-    setSimBearers([
-      ...simBearers,
+    // Ambil marketing specialist dari tabel yang belum terpilih
+    const available = marketingSpecialists.find(
+      (m) => !simBearers.some((b) => b.type === 'marketing' && b.specialist_id === m.id)
+    ) || marketingSpecialists[0];
+
+    setSimBearers((prev) => [
+      ...prev,
       {
         id: `bearer-${Date.now()}`,
-        name: `Marketing Specialist ${nextIdx}`,
+        name: available?.name || `Marketing Specialist ${prev.length + 1}`,
         amount: 0,
         type: 'marketing',
-        specialist_id: `ms-${nextIdx}`,
+        specialist_id: available?.id || null,
       },
     ]);
   };
@@ -132,18 +216,23 @@ export default function AdminFormulasPage() {
     setSimBearers(updated);
   };
 
-  const handleBearerNameChange = (index: number, name: string) => {
+  const handleBearerSelectChange = (index: number, selectedValue: string) => {
     const updated = [...simBearers];
-    updated[index].name = name;
-    setSimBearers(updated);
-  };
-
-  const handleBearerTypeChange = (index: number, type: 'marketing' | 'platform') => {
-    const updated = [...simBearers];
-    updated[index].type = type;
-    if (type === 'platform') {
-      updated[index].name = 'Kas Platform / Agency';
-      updated[index].specialist_id = null;
+    if (selectedValue === 'platform') {
+      updated[index] = {
+        ...updated[index],
+        type: 'platform',
+        specialist_id: null,
+        name: 'Platform / Agency (Kas Perusahaan)',
+      };
+    } else {
+      const matched = marketingSpecialists.find((m) => m.id === selectedValue);
+      updated[index] = {
+        ...updated[index],
+        type: 'marketing',
+        specialist_id: selectedValue,
+        name: matched?.name || 'Marketing Specialist',
+      };
     }
     setSimBearers(updated);
   };
@@ -183,12 +272,15 @@ export default function AdminFormulasPage() {
   }
 
   // Calculate live per-venue simulation using the exact codebase function
+  const selectedExternal = marketingSpecialists.find((m) => m.id === simExternalSpecialistId) || marketingSpecialists[0];
   const closerName =
     simCloser === 'vicky'
       ? 'Vicky Galih Pamungkas'
       : simCloser === 'natan'
       ? 'Natan Setyo Agung'
-      : 'Agen Eksternal';
+      : selectedExternal?.name || 'Agen Eksternal';
+
+  const singleSpecObj = marketingSpecialists.find((m) => m.id === simSingleSpecialistId) || marketingSpecialists[0];
 
   const totalBearersAllocated = simBearers.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
   const bearerDifference = simHpp - totalBearersAllocated;
@@ -207,8 +299,24 @@ export default function AdminFormulasPage() {
             type: b.type,
             specialist_id: b.specialist_id,
           }))
+        : simHppMode === 'single_marketing'
+        ? [
+            {
+              id: 'bearer-single-marketing',
+              name: singleSpecObj?.name || 'Marketing Specialist',
+              amount: simHpp,
+              ratio: 100,
+              type: 'marketing',
+              specialist_id: singleSpecObj?.id || null,
+            },
+          ]
         : undefined,
-    closing_specialist_id: simCloser === 'vicky' ? 'vicky-id' : simCloser === 'natan' ? 'natan-id' : 'external-id',
+    closing_specialist_id:
+      simCloser === 'vicky'
+        ? 'founder-vicky-dev'
+        : simCloser === 'natan'
+        ? 'founder-natan-dev'
+        : selectedExternal?.id || 'external-id',
     closing_specialist_name: closerName,
     transport_fee: simTransport,
   });
@@ -519,10 +627,29 @@ export default function AdminFormulasPage() {
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    Agen Eksternal
+                    Specialist Lain
                     <span className="block text-[9px] font-normal text-slate-500">Dev Fee 50:50</span>
                   </button>
                 </div>
+
+                {simCloser === 'external' && (
+                  <div className="mt-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                    <label className="block text-[10px] font-semibold text-slate-500">
+                      Pilih Marketing Specialist Closer dari Tabel:
+                    </label>
+                    <select
+                      value={simExternalSpecialistId}
+                      onChange={(e) => setSimExternalSpecialistId(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
+                    >
+                      {marketingSpecialists.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} {m.phone_whatsapp ? `(${m.phone_whatsapp})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Mode Penanggung HPP */}
@@ -531,18 +658,6 @@ export default function AdminFormulasPage() {
                   4. Skema Penanggung Modal HPP
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSimHppMode('custom_split')}
-                    className={`p-2 rounded-xl border text-xs font-bold transition text-left ${
-                      simHppMode === 'custom_split'
-                        ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-600'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    Custom Split Rp
-                    <span className="block text-[9px] font-normal text-slate-500">Beberapa Specialist</span>
-                  </button>
                   <button
                     type="button"
                     onClick={() => setSimHppMode('single_marketing')}
@@ -567,14 +682,49 @@ export default function AdminFormulasPage() {
                     100% Kas Platform
                     <span className="block text-[9px] font-normal text-slate-500">Kas Agency</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setSimHppMode('custom_split')}
+                    className={`p-2 rounded-xl border text-xs font-bold transition text-left ${
+                      simHppMode === 'custom_split'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-600'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Custom Split Rp
+                    <span className="block text-[9px] font-normal text-slate-500">Beberapa Specialist</span>
+                  </button>
                 </div>
+
+                {/* Single Marketing Specialist 100% Selector */}
+                {simHppMode === 'single_marketing' && (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5 mt-2 animate-in fade-in">
+                    <label className="block text-[11px] font-bold text-slate-700">
+                      Pilih Marketing Specialist Penanggung 100% Modal HPP:
+                    </label>
+                    <select
+                      value={simSingleSpecialistId}
+                      onChange={(e) => setSimSingleSpecialistId(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
+                    >
+                      {marketingSpecialists.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} {m.phone_whatsapp ? `(${m.phone_whatsapp})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-500">
+                      100% Modal HPP (Rp {simHpp.toLocaleString('id-ID')}) ditalangi penuh oleh specialist ini dan direimburse 100% saat pelunasan.
+                    </p>
+                  </div>
+                )}
 
                 {/* MULTI-BEARER CUSTOM SPLIT RUPIAH EDITOR */}
                 {simHppMode === 'custom_split' && (
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 mt-2 animate-in fade-in">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5 text-indigo-600" /> Rincian Modal per Specialist (Rp):
+                        <Users className="w-3.5 h-3.5 text-indigo-600" /> Rincian Modal per Penanggung (dari Tabel):
                       </span>
                       <button
                         type="button"
@@ -589,42 +739,71 @@ export default function AdminFormulasPage() {
                     <div className="space-y-2">
                       {simBearers.map((b, idx) => {
                         const ratio = simHpp > 0 ? ((b.amount / simHpp) * 100).toFixed(1) : '0.0';
+                        const isPlatform = b.type === 'platform';
                         return (
                           <div
                             key={b.id || idx}
-                            className="p-2.5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-1.5"
+                            className="p-2.5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-2"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <input
-                                type="text"
-                                value={b.name}
-                                onChange={(e) => handleBearerNameChange(idx, e.target.value)}
-                                className="text-xs font-bold text-slate-800 bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-500 focus:outline-none w-3/5"
-                                placeholder={`Marketing Specialist ${idx + 1}`}
-                              />
-                              <div className="flex items-center gap-1">
-                                <select
-                                  value={b.type}
-                                  onChange={(e) => handleBearerTypeChange(idx, e.target.value as any)}
-                                  className="text-[10px] font-semibold bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-0.5"
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 flex items-center gap-1">
+                                Penanggung #{idx + 1}
+                                <span
+                                  className={`ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full ${
+                                    isPlatform
+                                      ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                                      : 'bg-lime-50 text-lime-700 border border-lime-200'
+                                  }`}
                                 >
-                                  <option value="marketing">Specialist</option>
-                                  <option value="platform">Kas Platform</option>
-                                </select>
-                                {simBearers.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveBearer(idx)}
-                                    className="text-slate-400 hover:text-rose-500 p-0.5 transition"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
+                                  {isPlatform ? 'Kas Platform' : 'Marketing Specialist'}
+                                </span>
+                              </span>
+                              {simBearers.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveBearer(idx)}
+                                  className="text-slate-400 hover:text-rose-500 p-0.5 transition"
+                                  title="Hapus penanggung modal ini"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
 
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="relative flex-1">
+                            {/* Dropdown Pemilih Penanggung dari Tabel Marketing Specialist */}
+                            <div>
+                              <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
+                                Pilih dari Tabel Marketing Specialist / Kas:
+                              </label>
+                              <select
+                                value={b.type === 'platform' ? 'platform' : (b.specialist_id || '')}
+                                onChange={(e) => handleBearerSelectChange(idx, e.target.value)}
+                                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                              >
+                                <optgroup label="Tabel Marketing Specialist">
+                                  {marketingSpecialists.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.name} {m.phone_whatsapp ? `(${m.phone_whatsapp})` : ''}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Platform / Kas Agency">
+                                  <option value="platform">[Kas Platform] Kas Perusahaan / Agency</option>
+                                </optgroup>
+                              </select>
+                            </div>
+
+                            {/* Input Nominal Modal (Rp) & Rasio */}
+                            <div>
+                              <div className="flex items-center justify-between mb-0.5">
+                                <label className="block text-[10px] font-semibold text-slate-500">
+                                  Nominal Modal Ditanggung (Rp)
+                                </label>
+                                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                                  {ratio}% dari HPP
+                                </span>
+                              </div>
+                              <div className="relative">
                                 <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-[11px] font-bold text-slate-400">
                                   Rp
                                 </span>
@@ -634,11 +813,9 @@ export default function AdminFormulasPage() {
                                   value={b.amount}
                                   onChange={(e) => handleBearerAmountChange(idx, Number(e.target.value) || 0)}
                                   className="w-full pl-8 pr-2 py-1 text-xs font-bold text-slate-900 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                                  placeholder="0"
                                 />
                               </div>
-                              <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-200 shrink-0">
-                                {ratio}%
-                              </span>
                             </div>
                           </div>
                         );
