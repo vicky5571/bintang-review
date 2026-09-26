@@ -787,7 +787,6 @@ export function AdminVenueModal({
                 >
                   <Briefcase className="w-3.5 h-3.5 mb-1 text-[#84cc16]" />
                   <span className="text-[11px] font-bold">Marketing (100%)</span>
-                  <span className="text-[9px] text-slate-400">Modal 1 Specialist</span>
                 </button>
 
                 <button
@@ -820,7 +819,6 @@ export function AdminVenueModal({
                 >
                   <Building2 className="w-3.5 h-3.5 mb-1 text-cyan-600" />
                   <span className="text-[11px] font-bold">Platform (100%)</span>
-                  <span className="text-[9px] text-slate-400">Modal dari Agency</span>
                 </button>
 
                 <button
@@ -845,8 +843,7 @@ export function AdminVenueModal({
                   }`}
                 >
                   <Percent className="w-3.5 h-3.5 mb-1 text-indigo-600" />
-                  <span className="text-[11px] font-bold">Split Bersama</span>
-                  <span className="text-[9px] text-slate-400">Multi Marketing & Kas</span>
+                  <span className="text-[11px] font-bold">Split</span>
                 </button>
               </div>
 
