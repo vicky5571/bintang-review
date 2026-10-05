@@ -277,9 +277,9 @@ export default function AdminPage() {
       <header className="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <img
-            src="/bintang-review-logo.svg"
+            src="/bintang-review-logo.jpeg"
             alt="Bintang Review"
-            className="w-10 h-10 shrink-0"
+            className="h-10 w-auto max-w-[120px] object-contain rounded-lg shrink-0"
           />
           <div>
             <div className="flex items-center gap-2">

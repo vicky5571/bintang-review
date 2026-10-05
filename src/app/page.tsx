@@ -13,9 +13,9 @@ export default function HomePage() {
       <header className="px-6 py-5 border-b border-slate-100/90 backdrop-blur-md bg-white/80 sticky top-0 z-20 flex items-center justify-between max-w-6xl mx-auto w-full">
         <div className="flex items-center gap-3">
           <img
-            src="/bintang-review-logo.svg"
+            src="/bintang-review-logo.jpeg"
             alt="Bintang Review"
-            className="w-10 h-10 shrink-0"
+            className="h-10 w-auto max-w-[120px] object-contain rounded-lg shrink-0"
           />
           <div className="flex flex-col">
             <span className="font-black text-xl tracking-tight leading-none text-slate-900">
