@@ -249,32 +249,42 @@ export default function AdminPage() {
   const totalMarketingPayout = venueCalculations.reduce((acc, c) => acc + c.dist.marketing_total_payout, 0);
   const totalPlatformPayout = venueCalculations.reduce((acc, c) => acc + c.dist.platform_total_payout, 0);
 
-  // Option B Settlement Monitoring: Outstanding Debts & Paid Totals
-  const totalUnpaidHpp = venueCalculations.reduce((acc, c) => acc + c.settlement.unpaid_reimburse_marketing, 0);
-  const totalUnpaidProfitShare = venueCalculations.reduce((acc, c) => acc + c.settlement.unpaid_profit_share_marketing, 0);
-  const totalUnpaidPayout = totalUnpaidHpp + totalUnpaidProfitShare;
+  // Field Remittance & Settlement Monitoring: Outstanding Debts & Paid Totals
+  const totalUnremittedPlatformDue = venueCalculations
+    .filter((c) => (c.venue.remittance_status || c.venue.profit_share_status) !== 'verified' && (c.venue.remittance_status || c.venue.profit_share_status) !== 'paid')
+    .reduce((acc, c) => acc + c.dist.platform_remittance_due, 0);
 
-  const totalPaidHpp = venueCalculations.reduce((acc, c) => acc + c.settlement.paid_reimburse_marketing, 0);
-  const totalPaidProfitShare = venueCalculations.reduce((acc, c) => acc + c.settlement.paid_profit_share_marketing, 0);
-  const totalPaidPayout = totalPaidHpp + totalPaidProfitShare;
+  const totalVerifiedPlatformDue = venueCalculations
+    .filter((c) => (c.venue.remittance_status || c.venue.profit_share_status) === 'verified' || (c.venue.remittance_status || c.venue.profit_share_status) === 'paid')
+    .reduce((acc, c) => acc + c.dist.platform_remittance_due, 0);
+
+  const totalPendingRemittanceCount = venueCalculations
+    .filter((c) => c.venue.remittance_status === 'submitted').length;
 
   // Marketing Specialist Specific Figures
-  const myUnpaidHpp = venueCalculations.reduce((acc, c) => acc + c.settlement.unpaid_reimburse_marketing, 0);
-  const myUnpaidProfitShare = venueCalculations.reduce((acc, c) => acc + c.settlement.unpaid_profit_share_marketing, 0);
-  const myTotalPaid = venueCalculations.reduce((acc, c) => acc + c.settlement.total_paid_marketing, 0);
+  const myTotalDealAmount = venueCalculations.reduce((acc, c) => acc + (Number(c.venue.deal_amount) || 0), 0);
+  const myTotalRetained = venueCalculations.reduce((acc, c) => acc + c.dist.marketing_retained, 0);
+  const myTotalDueToPlatform = venueCalculations
+    .filter((c) => (c.venue.remittance_status || c.venue.profit_share_status) !== 'verified' && (c.venue.remittance_status || c.venue.profit_share_status) !== 'paid')
+    .reduce((acc, c) => acc + c.dist.platform_remittance_due, 0);
+  const myTotalRemitted = venueCalculations
+    .filter((c) => (c.venue.remittance_status || c.venue.profit_share_status) === 'verified' || (c.venue.remittance_status || c.venue.profit_share_status) === 'paid')
+    .reduce((acc, c) => acc + c.dist.platform_remittance_due, 0);
 
   return (
     <div className="min-h-screen bg-slate-50/70 pb-16">
       {/* Top Navbar */}
       <header className="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#84cc16] via-[#10b981] to-[#06b6d4] text-white flex items-center justify-center font-black shadow-md shadow-lime-500/15">
-            {isSuperAdmin ? <Store className="w-5 h-5" /> : <Briefcase className="w-5 h-5" />}
-          </div>
+          <img
+            src="/bintang-review-logo.svg"
+            alt="Bintang Review"
+            className="w-10 h-10 shrink-0"
+          />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900">
-                Bintang<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">Review</span>
+                Bintang<span className="text-sky-500">Review</span>
               </h1>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
@@ -362,42 +372,42 @@ export default function AdminPage() {
             </div>
 
             <div className={`bg-white rounded-2xl p-4 sm:p-5 border shadow-sm transition ${
-              totalUnpaidPayout > 0 ? 'border-amber-300 bg-gradient-to-br from-amber-50/50 via-white to-orange-50/30' : 'border-emerald-200 bg-gradient-to-br from-emerald-50/40 to-white'
+              totalUnremittedPlatformDue > 0 ? 'border-amber-300 bg-gradient-to-br from-amber-50/50 via-white to-orange-50/30' : 'border-emerald-200 bg-gradient-to-br from-emerald-50/40 to-white'
             }`}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-slate-700">Hutang Payout Belum Dibayar</span>
+                <span className="text-[11px] font-semibold text-slate-700">Piutang Setoran Marketing</span>
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                  totalUnpaidPayout > 0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                  totalUnremittedPlatformDue > 0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
                 }`}>
                   <Wallet className="w-4 h-4" />
                 </div>
               </div>
-              <div className={`text-lg sm:text-xl font-black ${totalUnpaidPayout > 0 ? 'text-amber-600' : 'text-emerald-700'}`}>
-                Rp {totalUnpaidPayout.toLocaleString('id-ID')}
+              <div className={`text-lg sm:text-xl font-black ${totalUnremittedPlatformDue > 0 ? 'text-amber-600' : 'text-emerald-700'}`}>
+                Rp {totalUnremittedPlatformDue.toLocaleString('id-ID')}
               </div>
               <p className="text-[10px] text-slate-500 mt-1 font-medium">
-                Reimb HPP: Rp {totalUnpaidHpp.toLocaleString('id-ID')} • Profit: Rp {totalUnpaidProfitShare.toLocaleString('id-ID')}
+                {totalPendingRemittanceCount > 0 ? `${totalPendingRemittanceCount} setoran menunggu verifikasi` : 'Uang platform di tangan tim lapangan'}
               </p>
             </div>
 
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-cyan-200/80 shadow-sm bg-gradient-to-br from-cyan-50/40 to-white">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-cyan-800">Net Kas Masuk Platform</span>
+                <span className="text-[11px] font-semibold text-cyan-800">Kas Platform Terealisasi</span>
                 <div className="w-7 h-7 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center">
                   <PiggyBank className="w-4 h-4" />
                 </div>
               </div>
               <div className="text-lg sm:text-xl font-black text-cyan-800">
-                Rp {totalPlatformPayout.toLocaleString('id-ID')}
+                Rp {totalVerifiedPlatformDue.toLocaleString('id-ID')}
               </div>
               <p className="text-[10px] text-cyan-600/80 mt-1">
-                Sudah dicairkan ke Mktg: Rp {totalPaidPayout.toLocaleString('id-ID')}
+                Total setoran terverifikasi masuk ke rekening kantor
               </p>
             </div>
           </section>
         )}
 
-        {/* MARKETING SPECIALIST PERSONAL SUMMARY CARDS (OPSI B) */}
+        {/* MARKETING SPECIALIST PERSONAL SUMMARY CARDS (FIELD COLLECTION) */}
         {isMarketingSpecialist && (
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm">
@@ -414,68 +424,52 @@ export default function AdminPage() {
               <p className="text-[10px] text-slate-400 mt-1">Kafe mitra aktif</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-amber-200/80 shadow-sm bg-gradient-to-br from-amber-50/40 to-white">
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-amber-800">Modal HPP Menunggu Reimburse</span>
-                <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
-                  <DollarSign className="w-4 h-4" />
+                <span className="text-[11px] font-semibold text-slate-500">Total Deal di Tangan</span>
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Receipt className="w-4 h-4" />
                 </div>
               </div>
-              <div className={`text-lg sm:text-xl font-black ${myUnpaidHpp > 0 ? 'text-amber-600' : 'text-slate-800'}`}>
-                Rp {myUnpaidHpp.toLocaleString('id-ID')}
+              <div className="text-lg sm:text-xl font-black text-slate-900">
+                Rp {myTotalDealAmount.toLocaleString('id-ID')}
               </div>
-              <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
-                {myUnpaidHpp > 0 ? (
-                  <>
-                    <Clock className="w-3 h-3 text-amber-500 shrink-0" />
-                    <span>Menunggu reimbursement platform</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                    <span>Tidak ada modal nunggak</span>
-                  </>
-                )}
-              </p>
+              <p className="text-[10px] text-slate-400 mt-1">Diterima dari klien di lapangan</p>
             </div>
 
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-teal-200/80 shadow-sm bg-gradient-to-br from-teal-50/40 to-white">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-teal-800">Keuntungan Menunggu Transfer</span>
+                <span className="text-[11px] font-semibold text-teal-800">Hak Bersih Saya</span>
                 <div className="w-7 h-7 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center">
                   <TrendingUp className="w-4 h-4" />
                 </div>
               </div>
-              <div className={`text-lg sm:text-xl font-black ${myUnpaidProfitShare > 0 ? 'text-teal-700' : 'text-slate-800'}`}>
-                Rp {myUnpaidProfitShare.toLocaleString('id-ID')}
+              <div className="text-lg sm:text-xl font-black text-teal-800">
+                Rp {myTotalRetained.toLocaleString('id-ID')}
               </div>
-              <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
-                {myUnpaidProfitShare > 0 ? (
-                  <>
-                    <Clock className="w-3 h-3 text-teal-600 shrink-0" />
-                    <span>Transport flat & bagi hasil profit</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                    <span>Semua keuntungan sudah cair</span>
-                  </>
-                )}
+              <p className="text-[10px] text-slate-500 mt-1">
+                Modal pribadi + transport + profit saya
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-emerald-200/80 shadow-sm bg-gradient-to-br from-emerald-50/50 to-white">
+            <div className={`bg-white rounded-2xl p-4 sm:p-5 border shadow-sm transition ${
+              myTotalDueToPlatform > 0
+                ? 'border-amber-300 bg-gradient-to-br from-amber-50/50 via-white to-orange-50/30'
+                : 'border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white'
+            }`}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-emerald-800">Sudah Diterima di Rekening</span>
-                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                  <Award className="w-4 h-4" />
+                <span className="text-[11px] font-semibold text-slate-800">Wajib Setor ke Kantor</span>
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                  myTotalDueToPlatform > 0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                }`}>
+                  <Wallet className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-lg sm:text-xl font-black text-emerald-700">
-                Rp {myTotalPaid.toLocaleString('id-ID')}
+              <div className={`text-lg sm:text-xl font-black ${myTotalDueToPlatform > 0 ? 'text-amber-600' : 'text-emerald-700'}`}>
+                Rp {myTotalDueToPlatform.toLocaleString('id-ID')}
               </div>
               <p className="text-[10px] text-slate-500 mt-1">
-                Total modal & profit yang sudah lunas
+                {myTotalDueToPlatform > 0 ? 'Wajib transfer ke rekening BCA kantor' : 'Semua setoran sudah lunas'}
               </p>
             </div>
           </section>
@@ -501,7 +495,7 @@ export default function AdminPage() {
                   <th className="px-6 py-3.5">Mode</th>
                   <th className="px-6 py-3.5">Paket</th>
                   <th className="px-6 py-3.5">{isSuperAdmin ? 'HPP & Harga Jual' : 'Harga Jual'}</th>
-                  <th className="px-6 py-3.5">Pelunasan Payout (Opsi B)</th>
+                  <th className="px-6 py-3.5">Status Setoran Kas</th>
                   <th className="px-6 py-3.5">PIN Owner</th>
                   <th className="px-6 py-3.5">Status</th>
                   <th className="px-6 py-3.5 text-right">Aksi</th>
@@ -621,58 +615,34 @@ export default function AdminPage() {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="space-y-1.5">
-                            {/* Reimburse HPP Status */}
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] font-bold text-slate-500">HPP:</span>
-                              {settlement.reimburse_status === 'not_applicable' ? (
-                                <span className="inline-flex items-center text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium">
-                                  Modal Platform (N/A)
-                                </span>
-                              ) : settlement.reimburse_status === 'paid' ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-bold border border-emerald-200">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  Lunas (Rp {settlement.reimburse_marketing.toLocaleString('id-ID')})
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-bold border border-amber-200">
-                                  <Clock className="w-3 h-3 text-amber-600" />
-                                  Belum (Rp {settlement.reimburse_marketing.toLocaleString('id-ID')})
-                                </span>
-                              )}
+                          <div className="space-y-1">
+                            {/* Remittance Status Badge */}
+                            {(v.remittance_status === 'verified' || v.profit_share_status === 'paid') ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-bold border border-emerald-200">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                Lunas (Setor Rp {dist.platform_remittance_due.toLocaleString('id-ID')})
+                              </span>
+                            ) : v.remittance_status === 'submitted' ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] bg-cyan-50 text-cyan-800 px-2 py-0.5 rounded-md font-bold border border-cyan-200">
+                                <Clock className="w-3.5 h-3.5 text-cyan-600" />
+                                Menunggu Cek (Rp {dist.platform_remittance_due.toLocaleString('id-ID')})
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-md font-bold border border-rose-200">
+                                <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                                Belum Setor (Rp {dist.platform_remittance_due.toLocaleString('id-ID')})
+                              </span>
+                            )}
+
+                            <div className="text-[10px] text-slate-500 font-medium">
+                              Hak Mktg: <span className="text-teal-700 font-bold">Rp {dist.marketing_retained.toLocaleString('id-ID')}</span>
                             </div>
 
-                            {/* Bagi Hasil & Transport Status */}
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] font-bold text-slate-500">Profit:</span>
-                              {settlement.profit_share_status === 'paid' ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-bold border border-emerald-200">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  Lunas (Rp {settlement.profit_share_marketing.toLocaleString('id-ID')})
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] bg-cyan-50 text-cyan-800 px-2 py-0.5 rounded-md font-bold border border-cyan-200">
-                                  <Clock className="w-3 h-3 text-cyan-600" />
-                                  Belum (Rp {settlement.profit_share_marketing.toLocaleString('id-ID')})
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Penanggung HPP info */}
-                            <div className="text-[10px] text-slate-400">
-                              {v.hpp_bearers && v.hpp_bearers.length > 1 ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-medium border border-indigo-100">
-                                  <Users className="w-3 h-3 text-indigo-600" />
-                                  Split {v.hpp_bearers.length} Pihak
-                                </span>
-                              ) : v.hpp_payer === 'platform' ? (
-                                'Modal: 100% Platform'
-                              ) : v.hpp_payer === 'split' ? (
-                                `Modal: Split (Rp ${dist.reimburse_marketing.toLocaleString('id-ID')} : Rp ${dist.reimburse_platform.toLocaleString('id-ID')})`
-                              ) : (
-                                'Modal: 100% Marketing'
-                              )}
-                            </div>
+                            {v.remittance_notes && (
+                              <p className="text-[9px] text-slate-400 italic max-w-xs truncate">
+                                Ref: {v.remittance_notes}
+                              </p>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 font-mono font-bold text-slate-600">{v.owner_access_pin}</td>
@@ -690,17 +660,29 @@ export default function AdminPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 text-right space-x-1.5 sm:space-x-2">
-                          {isSuperAdmin && (
+                          {isSuperAdmin ? (
                             <button
                               onClick={() => {
                                 setSelectedVenueForSettlement(v);
                                 setIsSettlementModalOpen(true);
                               }}
                               className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-lg border border-emerald-200 transition inline-flex items-center gap-1 shadow-sm"
-                              title="Kelola Pelunasan Reimburse HPP & Bagi Hasil"
+                              title="Verifikasi Setoran Kas Lapangan"
                             >
                               <Wallet className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Pelunasan</span>
+                              <span>Verifikasi</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedVenueForSettlement(v);
+                                setIsSettlementModalOpen(true);
+                              }}
+                              className="px-2.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold text-xs rounded-lg border border-teal-200 transition inline-flex items-center gap-1 shadow-sm"
+                              title="Konfirmasi Sudah Transfer Setor ke Kantor"
+                            >
+                              <Wallet className="w-3.5 h-3.5 text-teal-600" />
+                              <span>Setor Kas</span>
                             </button>
                           )}
                           {(!v.google_review_url || v.google_review_url.trim() === '') && (
@@ -923,10 +905,11 @@ export default function AdminPage() {
         }}
       />
 
-      {/* Settlement Payout Modal (Super Admin Only - Opsi B) */}
+      {/* Remittance & Settlement Modal */}
       <AdminSettlementModal
         venue={selectedVenueForSettlement}
         isOpen={isSettlementModalOpen}
+        userRole={currentUser?.role}
         onClose={() => {
           setIsSettlementModalOpen(false);
           setSelectedVenueForSettlement(null);
@@ -936,4 +919,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
