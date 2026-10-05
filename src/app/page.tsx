@@ -12,12 +12,14 @@ export default function HomePage() {
       {/* Navbar */}
       <header className="px-6 py-5 border-b border-slate-100/90 backdrop-blur-md bg-white/80 sticky top-0 z-20 flex items-center justify-between max-w-6xl mx-auto w-full">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#84cc16] via-[#10b981] to-[#06b6d4] text-white flex items-center justify-center font-black shadow-md shadow-lime-500/20">
-            <Star className="w-5 h-5 fill-white text-white" />
-          </div>
+          <img
+            src="/bintang-review-logo.svg"
+            alt="Bintang Review"
+            className="w-10 h-10 shrink-0"
+          />
           <div className="flex flex-col">
             <span className="font-black text-xl tracking-tight leading-none text-slate-900">
-              Bintang<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">Review</span>
+              Bintang<span className="text-sky-500">Review</span>
             </span>
             <span className="text-[10px] text-slate-400 font-medium">Smart NFC & Review Engine</span>
           </div>

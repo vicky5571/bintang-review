@@ -4,6 +4,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Bintang Review — Smart NFC & QR Review System',
   description: 'Solusi stand akrilik pintar dan review funnel untuk kafe & bisnis lokal di Indonesia',
+  icons: {
+    icon: '/bintang-review-logo.svg',
+  },
 };
 
 export default function RootLayout({
