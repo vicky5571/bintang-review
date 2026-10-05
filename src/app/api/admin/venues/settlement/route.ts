@@ -7,16 +7,74 @@ export async function PATCH(request: Request) {
   try {
     const session = getSessionFromRequest(request);
 
-    // Only super_admin can disburse/settle payouts
-    if (!session || session.role !== 'super_admin') {
+    if (!session || (session.role !== 'super_admin' && session.role !== 'marketing_specialist')) {
       return NextResponse.json(
-        { error: 'Hanya Super Admin yang berhak menandai pelunasan reimbursement atau bagi hasil.' },
+        { error: 'Akses ditolak. Sesi tidak sah.' },
         { status: 403 }
       );
     }
 
     const body = await request.json();
-    const { venue_id, bearer_id, type, status, notes } = body;
+    const { venue_id, bearer_id, type, status, notes, remittance_status } = body;
+
+    // Handle Field Remittance Status Update
+    if (remittance_status) {
+      const validStatuses = ['unpaid', 'submitted', 'verified'];
+      if (!validStatuses.includes(remittance_status)) {
+        return NextResponse.json(
+          { error: 'Status setoran tidak valid. Pilih: unpaid, submitted, atau verified.' },
+          { status: 400 }
+        );
+      }
+
+      // Specialist can only mark as 'submitted'
+      if (session.role === 'marketing_specialist' && remittance_status === 'verified') {
+        return NextResponse.json(
+          { error: 'Hanya Super Admin yang berhak memverifikasi status kelunasan setoran.' },
+          { status: 403 }
+        );
+      }
+
+      const venue = await dataStore.getVenueById(venue_id);
+      if (!venue) {
+        return NextResponse.json({ error: 'Venue tidak ditemukan.' }, { status: 404 });
+      }
+
+      const now = new Date().toISOString();
+      const updates: any = {
+        remittance_status,
+      };
+
+      if (notes !== undefined) {
+        updates.remittance_notes = notes;
+      }
+
+      if (remittance_status === 'verified') {
+        updates.remittance_paid_at = now;
+        updates.profit_share_status = 'paid';
+        updates.profit_share_paid_at = now;
+        updates.hpp_reimburse_status = 'paid';
+        updates.hpp_reimburse_paid_at = now;
+      } else if (remittance_status === 'unpaid') {
+        updates.remittance_paid_at = null;
+        updates.profit_share_status = 'unpaid';
+      }
+
+      const updatedVenue = await dataStore.updateVenue(venue_id, updates);
+      return NextResponse.json({
+        success: true,
+        venue: updatedVenue,
+        message: `Status setoran berhasil diperbarui menjadi ${remittance_status}.`,
+      });
+    }
+
+    // Only super_admin can disburse/settle legacy payouts
+    if (session.role !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'Hanya Super Admin yang berhak menandai pelunasan reimbursement atau bagi hasil.' },
+        { status: 403 }
+      );
+    }
 
     if (!venue_id || !type || !status) {
       return NextResponse.json(

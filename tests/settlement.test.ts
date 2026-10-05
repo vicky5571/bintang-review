@@ -342,5 +342,108 @@ describe('Option B Settlement & Multi-Bearer HPP Tracking', () => {
       const res = await settlementPatch(req);
       expect(res.status).toBe(403);
     });
+
+    it('allows Marketing Specialist to submit remittance transfer notes', async () => {
+      const venue = await dataStore.createVenue({
+        name: 'Kafe Field Remittance',
+        slug: 'kafe-field-remittance',
+        google_review_url: 'https://maps.google.com/review',
+        redirect_mode: 'smart_funnel',
+        feedback_channels: 'whatsapp',
+        owner_access_pin: '8888',
+        is_active: true,
+        deal_amount: 599000,
+        hpp: 150000,
+        deal_date: '2026-10-06',
+      });
+
+      const req = new Request('http://localhost:3000/api/admin/venues/settlement', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': createSpecialistCookie(),
+        },
+        body: JSON.stringify({
+          venue_id: venue.id,
+          remittance_status: 'submitted',
+          notes: 'Transfer setor via BCA Rp 44.900 ref #TRX-99120',
+        }),
+      });
+
+      const res = await settlementPatch(req);
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.venue.remittance_status).toBe('submitted');
+      expect(json.venue.remittance_notes).toBe('Transfer setor via BCA Rp 44.900 ref #TRX-99120');
+    });
+
+    it('prevents Marketing Specialist from self-verifying remittance', async () => {
+      const venue = await dataStore.createVenue({
+        name: 'Kafe Field Remittance 2',
+        slug: 'kafe-field-remittance-2',
+        google_review_url: 'https://maps.google.com/review',
+        redirect_mode: 'smart_funnel',
+        feedback_channels: 'whatsapp',
+        owner_access_pin: '8888',
+        is_active: true,
+        deal_amount: 599000,
+        hpp: 150000,
+        deal_date: '2026-10-06',
+      });
+
+      const req = new Request('http://localhost:3000/api/admin/venues/settlement', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': createSpecialistCookie(),
+        },
+        body: JSON.stringify({
+          venue_id: venue.id,
+          remittance_status: 'verified',
+        }),
+      });
+
+      const res = await settlementPatch(req);
+      expect(res.status).toBe(403);
+    });
+
+    it('allows Super Admin to verify remittance and syncs profit share status', async () => {
+      const venue = await dataStore.createVenue({
+        name: 'Kafe Field Remittance 3',
+        slug: 'kafe-field-remittance-3',
+        google_review_url: 'https://maps.google.com/review',
+        redirect_mode: 'smart_funnel',
+        feedback_channels: 'whatsapp',
+        owner_access_pin: '8888',
+        is_active: true,
+        deal_amount: 599000,
+        hpp: 150000,
+        deal_date: '2026-10-06',
+      });
+
+      const req = new Request('http://localhost:3000/api/admin/venues/settlement', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': createSuperAdminCookie(),
+        },
+        body: JSON.stringify({
+          venue_id: venue.id,
+          remittance_status: 'verified',
+          notes: 'Mutasi BCA masuk Rp 44.900 terverifikasi',
+        }),
+      });
+
+      const res = await settlementPatch(req);
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.venue.remittance_status).toBe('verified');
+      expect(json.venue.profit_share_status).toBe('paid');
+      expect(json.venue.remittance_paid_at).toBeDefined();
+    });
   });
 });
