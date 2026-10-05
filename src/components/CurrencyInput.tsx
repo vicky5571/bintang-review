@@ -16,7 +16,7 @@ interface CurrencyInputProps {
   showTerbilang?: boolean;
   className?: string;
   disabled?: boolean;
-  colorScheme?: 'lime' | 'emerald' | 'amber' | 'indigo' | 'purple' | 'cyan';
+  colorScheme?: 'sky' | 'brand' | 'lime' | 'emerald' | 'amber' | 'indigo' | 'purple' | 'cyan';
 }
 
 export function CurrencyInput({
@@ -32,7 +32,7 @@ export function CurrencyInput({
   showTerbilang = true,
   className = '',
   disabled = false,
-  colorScheme = 'emerald',
+  colorScheme = 'sky',
 }: CurrencyInputProps) {
   const [displayValue, setDisplayValue] = useState<string>(
     value ? formatRupiahNumber(value) : ''
@@ -70,7 +70,9 @@ export function CurrencyInput({
   };
 
   const focusBorderClasses = {
-    lime: 'focus-within:border-[#84cc16] focus-within:ring-lime-500/20',
+    sky: 'focus-within:border-[#00a3dc] focus-within:ring-sky-500/20',
+    brand: 'focus-within:border-[#00a3dc] focus-within:ring-sky-500/20',
+    lime: 'focus-within:border-[#00a3dc] focus-within:ring-sky-500/20',
     emerald: 'focus-within:border-emerald-500 focus-within:ring-emerald-500/20',
     amber: 'focus-within:border-amber-400 focus-within:ring-amber-500/20',
     indigo: 'focus-within:border-indigo-500 focus-within:ring-indigo-500/20',
@@ -79,7 +81,9 @@ export function CurrencyInput({
   }[colorScheme];
 
   const presetActiveClasses = {
-    lime: 'bg-lime-50 text-lime-800 border-[#84cc16] font-bold shadow-xs',
+    sky: 'bg-sky-50 text-sky-800 border-[#00a3dc] font-bold shadow-xs',
+    brand: 'bg-sky-50 text-sky-800 border-[#00a3dc] font-bold shadow-xs',
+    lime: 'bg-sky-50 text-sky-800 border-[#00a3dc] font-bold shadow-xs',
     emerald: 'bg-emerald-50 text-emerald-800 border-emerald-500 font-bold shadow-xs',
     amber: 'bg-amber-50 text-amber-800 border-amber-500 font-bold shadow-xs',
     indigo: 'bg-indigo-50 text-indigo-800 border-indigo-500 font-bold shadow-xs',

@@ -63,7 +63,7 @@ export function FunnelRating({ venue }: FunnelRatingProps) {
             className="w-20 h-20 rounded-3xl object-cover shadow-xl border-2 border-white mb-4"
           />
         ) : (
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#84cc16] via-[#10b981] to-[#06b6d4] text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-lime-500/20 mb-4">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#00a3dc] via-sky-500 to-blue-600 text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-sky-500/20 mb-4">
             {venue.name.charAt(0)}
           </div>
         )}
@@ -106,7 +106,7 @@ export function FunnelRating({ venue }: FunnelRatingProps) {
       {isRedirecting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl p-8 max-w-xs w-full text-center shadow-2xl border border-slate-100">
-            <div className="w-14 h-14 bg-gradient-to-br from-lime-50 to-cyan-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#10b981] border border-emerald-200/60 shadow-sm">
+            <div className="w-14 h-14 bg-gradient-to-br from-sky-50 to-cyan-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#00a3dc] border border-sky-200/60 shadow-sm">
               <Sparkles className="w-8 h-8 animate-spin" />
             </div>
             <h3 className="text-xl font-bold text-slate-900">Luar Biasa!</h3>

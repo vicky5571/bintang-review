@@ -137,7 +137,7 @@ export function PrivateFeedbackModal({ venue, rating, isOpen, onClose }: Private
                   placeholder="Mis: Siti"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-lime-500/20 focus:border-[#84cc16] focus:outline-none"
+                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500/20 focus:border-[#00a3dc] focus:outline-none"
                 />
               </div>
               <div>
@@ -147,7 +147,7 @@ export function PrivateFeedbackModal({ venue, rating, isOpen, onClose }: Private
                   placeholder="Mis: 07"
                   value={tableNumber}
                   onChange={(e) => setTableNumber(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-lime-500/20 focus:border-[#84cc16] focus:outline-none"
+                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500/20 focus:border-[#00a3dc] focus:outline-none"
                 />
               </div>
             </div>
@@ -160,14 +160,14 @@ export function PrivateFeedbackModal({ venue, rating, isOpen, onClose }: Private
                 placeholder="Ceritakan apa yang bisa kami tingkatkan..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-lime-500/20 focus:border-[#84cc16] focus:outline-none"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500/20 focus:border-[#00a3dc] focus:outline-none"
               />
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 active:scale-98 text-white font-bold rounded-xl transition shadow-lg shadow-emerald-500/20"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#00a3dc] via-sky-600 to-blue-600 hover:opacity-95 active:scale-98 text-white font-bold rounded-xl transition shadow-lg shadow-sky-500/20"
             >
               {venue.feedback_channels === 'whatsapp' || venue.feedback_channels === 'both' ? (
                 <>

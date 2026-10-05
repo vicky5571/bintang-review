@@ -245,9 +245,9 @@ export function UnifiedLoginCard({
         </p>
         <Link
           href="/login"
-          className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1.5 py-1 px-3 rounded-lg hover:bg-emerald-50"
+          className="text-xs font-semibold text-[#00a3dc] hover:text-sky-700 transition flex items-center gap-1.5 py-1 px-3 rounded-lg hover:bg-sky-50"
         >
-          <Store className="w-3.5 h-3.5 text-emerald-600" />
+          <Store className="w-3.5 h-3.5 text-[#00a3dc]" />
           <span>Masuk ke Portal Owner Kafe &rarr;</span>
         </Link>
       </div>

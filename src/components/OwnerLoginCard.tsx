@@ -65,14 +65,14 @@ export function OwnerLoginCard({ onSuccess, redirectUrl }: OwnerLoginCardProps) 
   return (
     <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl p-8 text-center shadow-2xl shadow-slate-200/70 relative">
       {/* Header Badge */}
-      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-700 text-xs font-semibold mb-5">
-        <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 border border-sky-200/60 text-[#00a3dc] text-xs font-semibold mb-5">
+        <Sparkles className="w-3.5 h-3.5 text-[#00a3dc]" />
         Portal Khusus Owner Kafe
       </div>
 
       {/* Header Icon & Title */}
-      <div className="w-16 h-16 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/70 rounded-2xl flex items-center justify-center mx-auto mb-3 text-emerald-600 shadow-sm">
-        <Store className="w-8 h-8 text-emerald-600" />
+      <div className="w-16 h-16 bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-200/70 rounded-2xl flex items-center justify-center mx-auto mb-3 text-[#00a3dc] shadow-sm">
+        <Store className="w-8 h-8 text-[#00a3dc]" />
       </div>
 
       <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1">
@@ -106,7 +106,7 @@ export function OwnerLoginCard({ onSuccess, redirectUrl }: OwnerLoginCardProps) 
               onChange={(e) => setIdentifier(e.target.value)}
               placeholder="Contoh: 08123456789 atau kopi-senja"
               required
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition font-medium placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-[#00a3dc] transition font-medium placeholder:text-slate-400"
             />
           </div>
           <p className="text-[11px] text-slate-400 mt-1">
@@ -129,7 +129,7 @@ export function OwnerLoginCard({ onSuccess, redirectUrl }: OwnerLoginCardProps) 
               placeholder="Masukkan PIN akses 4-6 digit"
               required
               maxLength={10}
-              className="w-full pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition font-mono placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400"
+              className="w-full pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-[#00a3dc] transition font-mono placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400"
             />
             <button
               type="button"
@@ -145,7 +145,7 @@ export function OwnerLoginCard({ onSuccess, redirectUrl }: OwnerLoginCardProps) 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+          className="w-full py-3 bg-gradient-to-r from-[#00a3dc] via-sky-600 to-blue-600 hover:opacity-95 text-white font-bold rounded-xl shadow-lg shadow-sky-500/20 transition flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed mt-2"
         >
           {loading ? (
             <>

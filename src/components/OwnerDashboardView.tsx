@@ -25,7 +25,7 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
           {venue.logo_url ? (
             <img src={venue.logo_url} alt={venue.name} className="w-10 h-10 rounded-2xl object-cover border border-slate-100 shadow-sm" />
           ) : (
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#84cc16] via-[#10b981] to-[#06b6d4] text-white flex items-center justify-center font-black shadow-sm">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#00a3dc] via-sky-500 to-blue-600 text-white flex items-center justify-center font-black shadow-sm">
               {venue.name.charAt(0)}
             </div>
           )}
@@ -144,7 +144,7 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
               <span className="text-xs font-semibold uppercase tracking-wider">Tingkat Kepuasan</span>
               <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
             </div>
-            <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">
+            <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00a3dc] to-blue-600">
               {analytics.satisfaction_rate}%
             </div>
             <p className="text-xs text-slate-400 mt-1">Rating 4-5 bintang langsung ke Google</p>
@@ -228,7 +228,7 @@ export function OwnerDashboardView({ venue, analytics, feedbacks }: OwnerDashboa
             href={supportWaUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 active:scale-95 text-white text-xs font-bold rounded-xl transition whitespace-nowrap shadow-md shadow-emerald-500/20"
+            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#00a3dc] via-sky-600 to-blue-600 hover:opacity-95 active:scale-95 text-white text-xs font-bold rounded-xl transition whitespace-nowrap shadow-md shadow-sky-500/20"
           >
             <PhoneCall className="w-3.5 h-3.5" /> Chat Concierge
           </a>

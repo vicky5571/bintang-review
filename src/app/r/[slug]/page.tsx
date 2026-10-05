@@ -68,7 +68,7 @@ export default async function CustomerTapPage({ params }: PageProps) {
           <div className="pt-2 space-y-3">
             <a
               href={`/admin?activate=${venue.slug}`}
-              className="inline-flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition active:scale-[0.98] gap-1.5"
+              className="inline-flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-[#00a3dc] via-sky-600 to-blue-600 hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-500/20 transition active:scale-[0.98] gap-1.5"
             >
               <Zap className="w-4 h-4" />
               Login & Aktivasi (Marketing / Admin)

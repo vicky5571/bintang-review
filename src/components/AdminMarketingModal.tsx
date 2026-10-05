@@ -62,7 +62,7 @@ export function AdminMarketingModal({ isOpen, onClose, onSave }: AdminMarketingM
       <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-lime-500/10 text-[#84cc16] flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-[#00a3dc] flex items-center justify-center font-bold">
               <UserPlus className="w-4 h-4" />
             </div>
             <div>
@@ -85,7 +85,7 @@ export function AdminMarketingModal({ isOpen, onClose, onSave }: AdminMarketingM
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
+              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-[#00a3dc] focus:ring-2 focus:ring-sky-500/20 focus:outline-none text-xs"
               placeholder="Contoh: Rian Pratama"
             />
           </div>
@@ -101,7 +101,7 @@ export function AdminMarketingModal({ isOpen, onClose, onSave }: AdminMarketingM
                 type="text"
                 value={formData.phone_whatsapp}
                 onChange={(e) => setFormData({ ...formData, phone_whatsapp: e.target.value.replace(/\D/g, '') })}
-                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl font-mono focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
+                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl font-mono focus:border-[#00a3dc] focus:ring-2 focus:ring-sky-500/20 focus:outline-none text-xs"
                 placeholder="6281234567890"
               />
             </div>
@@ -120,7 +120,7 @@ export function AdminMarketingModal({ isOpen, onClose, onSave }: AdminMarketingM
                 maxLength={8}
                 value={formData.access_pin}
                 onChange={(e) => setFormData({ ...formData, access_pin: e.target.value.replace(/\D/g, '') })}
-                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl font-mono tracking-widest focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
+                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl font-mono tracking-widest focus:border-[#00a3dc] focus:ring-2 focus:ring-sky-500/20 focus:outline-none text-xs"
                 placeholder="1234"
               />
             </div>
@@ -137,7 +137,7 @@ export function AdminMarketingModal({ isOpen, onClose, onSave }: AdminMarketingM
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl focus:border-[#84cc16] focus:ring-2 focus:ring-lime-500/20 focus:outline-none text-xs"
+                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl focus:border-[#00a3dc] focus:ring-2 focus:ring-sky-500/20 focus:outline-none text-xs"
                 placeholder="rian@email.com"
               />
             </div>

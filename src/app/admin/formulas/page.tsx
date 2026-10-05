@@ -404,8 +404,8 @@ export default function AdminFormulasPage() {
         <section className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-lime-500/10 text-lime-600 flex items-center justify-center font-bold">
-                <Layers className="w-5 h-5 text-[#84cc16]" />
+              <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-[#00a3dc] flex items-center justify-center font-bold">
+                <Layers className="w-5 h-5 text-[#00a3dc]" />
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-black text-slate-900">
@@ -752,7 +752,7 @@ export default function AdminFormulasPage() {
                                   className={`ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full ${
                                     isPlatform
                                       ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
-                                      : 'bg-lime-50 text-lime-700 border border-lime-200'
+                                      : 'bg-sky-50 text-sky-700 border border-sky-200'
                                   }`}
                                 >
                                   {isPlatform ? 'Kas Platform' : 'Marketing Specialist'}

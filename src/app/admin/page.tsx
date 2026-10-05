@@ -284,7 +284,7 @@ export default function AdminPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900">
-                Bintang<span className="text-sky-500">Review</span>
+                Bintang<span className="text-[#00a3dc]">Review</span>
               </h1>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
@@ -322,7 +322,7 @@ export default function AdminPage() {
               setSelectedVenueForEdit(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 transition active:scale-95"
+            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-[#00a3dc] via-sky-600 to-blue-600 hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-500/20 transition active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Tambah Klien Venue</span>
@@ -844,12 +844,12 @@ export default function AdminPage() {
           <section className="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-[#84cc16]" />
+                <DollarSign className="w-5 h-5 text-[#00a3dc]" />
                 <h2 className="font-bold text-slate-800 text-sm sm:text-base">Kinerja Marketing Specialist</h2>
               </div>
               <button
                 onClick={() => setIsMarketingModalOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#84cc16] via-[#10b981] to-[#06b6d4] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/15 transition active:scale-95 w-fit"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#00a3dc] via-sky-600 to-blue-600 hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-500/15 transition active:scale-95 w-fit"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 Tambah Marketing Specialist
@@ -858,13 +858,13 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {marketingSpecialists.map((agent) => (
-                <div key={agent.id} className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-2 hover:border-emerald-200 transition">
+                <div key={agent.id} className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-2 hover:border-sky-200 transition">
                   <h3 className="font-bold text-slate-900">{agent.name}</h3>
                   <div className="text-xs text-slate-500">Venue Terjual: {agent.total_venues} kafe</div>
                   <div className="text-xs text-slate-500">
                     Total Deal: Rp {agent.total_revenue.toLocaleString('id-ID')}
                   </div>
-                  <div className="pt-2 border-t border-slate-100 font-black text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#84cc16] to-[#06b6d4]">
+                  <div className="pt-2 border-t border-slate-100 font-black text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#00a3dc] to-blue-600">
                     Hak Bagi Hasil Diterima: Rp {agent.earned_commission.toLocaleString('id-ID')}
                   </div>
                 </div>
