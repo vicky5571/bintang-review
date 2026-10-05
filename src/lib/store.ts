@@ -522,6 +522,10 @@ class StoreRepository {
       profit_share_status: payload.profit_share_status || 'unpaid',
       profit_share_paid_at: payload.profit_share_paid_at,
       profit_share_notes: payload.profit_share_notes,
+      remittance_status: payload.remittance_status || (payload.profit_share_status === 'paid' ? 'verified' : 'unpaid'),
+      remittance_amount: payload.remittance_amount !== undefined ? Number(payload.remittance_amount) : 0,
+      remittance_notes: payload.remittance_notes,
+      remittance_paid_at: payload.remittance_paid_at,
       sales_id: payload.sales_id && String(payload.sales_id).trim() !== '' ? String(payload.sales_id).trim() : null,
       deal_date: payload.deal_date || new Date().toISOString().split('T')[0],
     };
@@ -637,6 +641,18 @@ class StoreRepository {
     }
     if ('profit_share_notes' in updates) {
       sanitizedUpdates.profit_share_notes = updates.profit_share_notes;
+    }
+    if ('remittance_status' in updates) {
+      sanitizedUpdates.remittance_status = updates.remittance_status;
+    }
+    if ('remittance_amount' in updates) {
+      sanitizedUpdates.remittance_amount = Number(updates.remittance_amount) || 0;
+    }
+    if ('remittance_notes' in updates) {
+      sanitizedUpdates.remittance_notes = updates.remittance_notes;
+    }
+    if ('remittance_paid_at' in updates) {
+      sanitizedUpdates.remittance_paid_at = updates.remittance_paid_at;
     }
     if ('sales_id' in updates) {
       sanitizedUpdates.sales_id = updates.sales_id && String(updates.sales_id).trim() !== '' ? String(updates.sales_id).trim() : null;

@@ -35,6 +35,7 @@ export type PaymentStatus = 'pending' | 'approved' | 'rejected';
 export type BillingType = 'one_time' | 'subscription';
 export type HppPayerType = 'marketing' | 'platform' | 'split';
 export type SettlementStatus = 'unpaid' | 'paid' | 'not_applicable';
+export type RemittanceStatus = 'unpaid' | 'submitted' | 'verified' | 'not_applicable';
 export type BearerType = 'platform' | 'marketing';
 
 export interface HppBearer {
@@ -81,6 +82,11 @@ export interface Venue {
   profit_share_status?: SettlementStatus; // 'unpaid' | 'paid'
   profit_share_paid_at?: string | null;
   profit_share_notes?: string;
+  // Remittance Tracking (Field Collection Model)
+  remittance_status?: RemittanceStatus; // 'unpaid' | 'submitted' | 'verified' | 'not_applicable'
+  remittance_amount?: number; // Nominal wajib disetor ke rekening platform
+  remittance_notes?: string; // No ref / jam transfer marketing
+  remittance_paid_at?: string | null; // Waktu verifikasi atau submit setoran
   monthly_retainer_fee: number;
   deal_date: string;
   billing_type?: BillingType;
