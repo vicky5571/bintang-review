@@ -15,7 +15,7 @@ export default function HomePage() {
           <img
             src="/bintang-review-logo.jpeg"
             alt="Bintang Review"
-            className="h-10 w-auto max-w-[120px] object-contain rounded-lg shrink-0"
+            className="w-10 h-10 rounded-xl object-contain border border-slate-100 shadow-sm shrink-0"
           />
           <div className="flex flex-col">
             <span className="font-black text-xl tracking-tight leading-none text-slate-900">

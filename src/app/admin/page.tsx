@@ -279,7 +279,7 @@ export default function AdminPage() {
           <img
             src="/bintang-review-logo.jpeg"
             alt="Bintang Review"
-            className="h-10 w-auto max-w-[120px] object-contain rounded-lg shrink-0"
+            className="w-10 h-10 rounded-xl object-contain border border-slate-100 shadow-sm shrink-0"
           />
           <div>
             <div className="flex items-center gap-2">
