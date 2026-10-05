@@ -1,4 +1,4 @@
-import { HppBearer } from '@/lib/types';
+import { HppBearer, RemittanceStatus } from '@/lib/types';
 
 export type HppPayerType = 'marketing' | 'platform' | 'split';
 export type DeveloperFeeRecipient = 'vicky' | 'natan' | 'split';
@@ -72,6 +72,10 @@ export interface ProfitDistributionResult {
   // Laba Bersih Murni (Net profit di atas modal HPP yang dikeluarkan)
   marketing_net_income: number; // marketing_total_payout - reimburse_marketing
   platform_net_income: number; // platform_total_payout - reimburse_platform
+
+  // Field Remittance (Arus Kas Terbalik)
+  marketing_retained: number; // Hak bersih yang langsung diambil marketing di lapangan
+  platform_remittance_due: number; // Nominal wajib disetor ke kas platform
 
   // Multi-Bearer Breakdown
   bearers_summary: BearerSummary[];
@@ -323,6 +327,12 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
   const marketing_net_income = marketing_total_payout - reimburse_marketing;
   const platform_net_income = platform_total_payout - reimburse_platform;
 
+  // Field Remittance (Arus Kas Terbalik)
+  // Marketing retains their reimbursement, transport, and profit share
+  const marketing_retained = marketing_total_payout;
+  // Platform collects the remaining balance (platform reimburse + platform fee + platform share)
+  const platform_remittance_due = Math.max(0, deal_amount - marketing_retained);
+
   // Reciprocal Developer Fee calculation
   let specialistIdentifier = closingSpecialistName || closingSpecialistId;
   if (!specialistIdentifier && closingSpecialistInBearers) {
@@ -356,6 +366,8 @@ export function calculateProfitDistribution(params: ProfitDistributionParams): P
     platform_total_payout,
     marketing_net_income,
     platform_net_income,
+    marketing_retained,
+    platform_remittance_due,
     bearers_summary,
   };
 }
@@ -391,6 +403,11 @@ export interface VenueSettlementSummary {
   paid_profit_share_marketing: number;
   total_paid_marketing: number;
 
+  // Field Remittance Tracking
+  remittance_due: number; // Nominal wajib disetor ke kas platform
+  remittance_status: RemittanceStatus; // 'unpaid' | 'submitted' | 'verified' | 'not_applicable'
+  marketing_retained: number; // Nominal hak bersih yang langsung dinikmati marketing
+
   // Multi-Bearer Breakdown
   bearers_settlement: BearerSettlementItem[];
 }
@@ -408,6 +425,7 @@ export function calculateVenueSettlement(venue: {
   transport_fee?: number;
   hpp_reimburse_status?: 'unpaid' | 'paid' | 'not_applicable';
   profit_share_status?: 'unpaid' | 'paid' | 'not_applicable';
+  remittance_status?: RemittanceStatus;
 }): VenueSettlementSummary {
   const dist = calculateProfitDistribution({
     deal_amount: venue.deal_amount,
@@ -512,6 +530,10 @@ export function calculateVenueSettlement(venue: {
     aggregateProfitShareStatus = 'paid';
   }
 
+  const remittance_due = dist.platform_remittance_due;
+  const remittance_status = venue.remittance_status || (venueProfitShareStatus === 'paid' ? 'verified' : 'unpaid');
+  const marketing_retained = dist.marketing_retained;
+
   return {
     reimburse_marketing,
     reimburse_status: aggregateReimburseStatus,
@@ -523,6 +545,9 @@ export function calculateVenueSettlement(venue: {
     paid_reimburse_marketing,
     paid_profit_share_marketing,
     total_paid_marketing,
+    remittance_due,
+    remittance_status,
+    marketing_retained,
     bearers_settlement,
   };
 }
